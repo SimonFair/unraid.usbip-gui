@@ -44,11 +44,11 @@ rm -f $(ls &packages;/*.tgz 2>/dev/null | grep -v '&version;')
 
 <!--
 Get the plugin bundle.
--->
+
 <FILE Name="&packages;/&name;-&version;.tgz">
 <URL>"&gitURL;/&name;-&version;.tgz"</URL>
 </FILE>
-
+-->
 
 <!--
 The 'post-install' script.
