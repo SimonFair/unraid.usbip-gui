@@ -1,0 +1,857 @@
+Menu="usbip:4"
+Title="Unassigned USB Devices"
+Tag="unlink"
+---
+<?php
+/* 
+ * Copyright 2020 -	Simon Fairweather
+ *
+ *  Based on original code from  Guilherme Jardim and Dan Landon
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+
+$plugin = "unraid.usbip-gui";
+$docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: '/usr/local/emhttp';
+$translations = file_exists("$docroot/webGui/include/Translations.php");
+require_once "$docroot/plugins/$plugin/include/Legacy.php";
+?>
+<?if (! $translations):?>
+<?eval('?>'.parse_file("$docroot/plugins/$plugin/USB_Devices.page"))?>
+<?else:?>
+<?
+/* read translations */
+parse_plugin('unraid.usbip-gui');
+
+require_once "plugins/$plugin/include/lib_usbip.php";
+$version = parse_ini_file("/etc/unraid-version");
+
+?>
+
+<script type="text/javascript" src="<?autov('/webGui/javascript/jquery.switchbutton.js')?>"></script>
+<link type="text/css" rel="stylesheet" href="<?autov('/webGui/styles/jquery.ui.css')?>">
+<link type="text/css" rel="stylesheet" href="<?autov('/webGui/styles/jquery.switchbutton.css')?>">
+
+<link type="text/css" rel="stylesheet" href="<?autov('/webGui/styles/jquery.filetree.css')?>">
+<script src="<?autov('/webGui/javascript/jquery.filetree.js')?>"></script>
+
+<script type="text/javascript" src="<?autov('/plugins/'.$plugin.'/assets/arrive.min.js')?>"></script>
+
+<style>
+	table.disk_mounts {padding: 0px 0px 0px 0px;border-collapse:collapse;white-space:nowrap;}
+	table.disk_mounts thead tr>td{text-align:left;width:8%;}
+	table.disk_mounts tr>td+td{text-align:left;}
+	table.disk_mounts tr>td+td+td{text-align:center;}
+	table.disk_mounts tr>td+td+td+td{text-align:right;}
+	table.disk_mounts tr>td+td+td+td+td+td+td{text-align:center;}
+	table.disk_mounts tr>td+td+td+td+td+td+td+td{text-align:right;}
+	table.disk_mounts tr>td+td+td+td+td+td+td+td+td+td+td+td{text-align:center;}
+
+	table.usb_absent {padding: 0px 0px 0px 0px;border-collapse:collapse;white-space:nowrap;}
+	table.usb_absent thead tr>td{text-align:left;width:8%;}
+	table.usb_absent tr>td+td{text-align:left;}
+	table.usb_absent tr>td+td+td+td{text-align:center;}
+
+	table.samba_mounts {padding: 0px 0px 0px 0px;border-collapse:collapse;white-space:nowrap;}
+	table.samba_mounts thead tr>td{text-align:left;width:8%;}
+	table.samba_mounts tr>td+td{text-align:left;}
+	table.samba_mounts tr>td+td+td+td{text-align:center;}
+	table.samba_mounts tr>td+td+td+td+td+td+td{text-align:right;}
+	table.samba_mounts tr>td+td+td+td+td+td+td+td+td+td+td+td+td{text-align:center}
+
+
+	button.mount {padding:2px 4px 3px 6px;margin:1px 0px 1px 0px;}
+	i.partition-hdd{margin:5px; 0px; 0px; 0px;}
+	i.hdd{margin:5px; 0px; 0px; 0px;}
+	i.port{margin:5px; 0px; 0px; 0px;}
+	i.share{margin:5px 5px 0px 0px;}
+	i.mount-share{margin:5px 5px 0px 0px;}
+	i.partition-script{margin-left: 10px; margin-right: 6px;}
+	.exec{cursor: pointer;}
+	i.port-script{margin-left: 10px; margin-right: 6px;}
+	.exec{cursor: pointer;}
+	i.fa-append{margin:0px;font-size: 0.8em;position: relative; left:-0.3em;top:0.7em;}
+	.underline{text-decoration: underline;}
+
+	form.inline{display:inline;margin: 0px; padding: 0px;}
+
+	.fileTree {
+		width: 305px;
+		max-height: 150px;
+		overflow: scroll;
+		position: absolute;
+		z-index: 100;
+		display: none;
+		color:initial;
+	}
+
+  .image-radio input{margin:0;padding:0;-webkit-appearance:none;-moz-appearance:none;appearance:none;}
+  .image-radio input:active +.image-radio-label{opacity: .9;}
+  .image-radio input:checked +.image-radio-label{ -webkit-filter: none;-moz-filter: none;filter: none;}
+  .image-radio-label{cursor:pointer; background-size:contain; background-repeat:no-repeat;display:inline-block; width:100px;height:70px; -webkit-transition: all 100ms ease-in;-moz-transition: all 100ms ease-in;transition: all 100ms ease-in;-webkit-filter: brightness(1.8) grayscale(1) opacity(.7);-moz-filter: brightness(1.8) grayscale(1) opacity(.7);filter: brightness(1.8) grayscale(1) opacity(.7);}
+  .image-radio-label:hover{-webkit-filter: brightness(1.2) grayscale(.5) opacity(.9);-moz-filter: brightness(1.2) grayscale(.5) opacity(.9);filter: brightness(1.2) grayscale(.5) opacity(.9);}
+  .image-radio-linux{background-image: url(/plugins/unassigned.devices/icons/nfs-radio.png)}
+  .image-radio-windows{background-image: url(/plugins/unassigned.devices/icons/smb-radio.png)}
+</style>
+
+<script type="text/javascript">
+
+	<?=$Preclear ? $Preclear->Script() : "";?>
+
+	function rm_preclear(dev) {
+		$.post(UDURL,{action:"rm_preclear",device:dev}).always(function(){usb_disks(tab_usbdisks)});
+	}
+
+	function spin_down_disk(dev) {
+		document.getElementById('disk_orb-'+dev).className = "fa fa-refresh fa-spin orb grey-orb";
+		$.post(UDURL,{action:"spin_down_disk",device:dev});
+	}
+
+	function spin_up_disk(dev) {
+		document.getElementById('disk_orb-'+dev).className = "fa fa-refresh fa-spin orb grey-orb ";
+		$.post(UDURL,{action:"spin_up_disk",device:dev});
+	}
+
+	if (typeof " ".formatUnicorn !== "function")
+	{
+	  String.prototype.formatUnicorn = String.prototype.formatUnicorn ||
+	  function () {
+	      "use strict";
+	      var str = this.toString();
+	      if (arguments.length) {
+	          var t = typeof arguments[0];
+	          var key;
+	          var args = ("string" === t || "number" === t) ?
+	              Array.prototype.slice.call(arguments)
+	              : arguments[0];
+
+	          for (key in args) {
+	              str = str.replace(new RegExp("\\{" + key + "\\}", "gi"), args[key]);
+	          }
+	      }
+
+	      return str;
+	  };
+	}
+
+	(function ($) {
+		$.fn.getHiddenDimensions = function (includeMargin)
+		{
+			var $item = this,
+			props = { position: 'absolute', visibility: 'hidden', display: 'block' },
+			dim = { width: 0, height: 0, innerWidth: 0, innerHeight: 0, outerWidth: 0, outerHeight: 0 },
+			$hiddenParents = $item.parents().andSelf().not(':visible'),
+			includeMargin = (includeMargin == null) ? false : includeMargin;
+
+			var oldProps = [];
+			$hiddenParents.each(function ()
+			{
+				var old = {};
+
+				for (var name in props)
+				{
+					old[name] = this.style[name];
+					this.style[name] = props[name];
+				}
+
+				oldProps.push(old);
+			});
+
+			dim.width = $item.width();
+			dim.outerWidth = $item.outerWidth(includeMargin);
+			dim.innerWidth = $item.innerWidth();
+			dim.height = $item.height();
+			dim.innerHeight = $item.innerHeight();
+			dim.outerHeight = $item.outerHeight(includeMargin);
+
+			$hiddenParents.each(function (i)
+			{
+				var old = oldProps[i];
+				for (var name in props)
+				{
+					this.style[name] = old[name];
+				}
+			});
+
+			return dim;
+		}
+	}(jQuery));
+
+	function openWindow_fsck(cmd,title,height,width) {
+		var run = cmd;
+		var top = (screen.height-height)/2;
+		var left = (screen.width-width)/2;
+		var options = 'resizeable=yes,scrollbars=yes,height='+height+',width='+width+',top='+top+',left='+left;
+		window.open(run, 'log', options);
+	}
+
+	function usbip_op(el, op, device) {
+		/* add spinning and disable button */
+
+		
+		$("button[device='"+device+"']").html("<i class='fa fa-circle-o-notch fa-spin'></i> "+(op == "bind" ? "<?=_('Binding');?>" : "<?=_('Unbinding');?>"));
+		$("button[device='"+device+"']").prop("disabled","true"); 
+
+		$.post(UDURL,{'action':op,'device':device}).done(function(data)
+		{
+
+		/* $("button[device='"+device+"']").html(" "+(op == "bind" ? "<?=_('Unbind');?>" : "<?=_('Bind');?>"));*/
+		
+		usb_disks(tab_usbdisks) ;
+		});
+	}
+
+
+	function usbip_attach(el, op, device) {
+		/* add spinning and disable button */
+
+		
+		$("button[hostport='"+device+"']").html("<i class='fa fa-circle-o-notch fa-spin'></i> "+(op == "attach" ? "<?=_('Attaching');?>" : "<?=_('Unbinding');?>"));
+		$("button[hostport='"+device+"']").prop("disabled","true"); 
+
+		$.post(UDURL,{'action':op,'hostport':device}).done(function(data)
+		{
+
+		/* $("button[device='"+device+"']").html(" "+(op == "bind" ? "<?=_('Unbind');?>" : "<?=_('attach');?>"));*/
+		
+		usb_disks(tab_usbdisks) ;
+		});
+	}
+
+
+	function usbip_detach(el, op, port) {
+		/* add spinning and disable button */
+
+		
+		$("button[port='"+port+"']").html("<i class='fa fa-circle-o-notch fa-spin'></i> "+(op == "detach" ? "<?=_('Detaching');?>" : "<?=_('Unbinding');?>"));
+		$("button[port='"+port+"']").prop("disabled","true"); 
+
+		$.post(UDURL,{'action':op,'port':port}).done(function(data)
+		{
+
+		/* $("button[port='"+port+"']").html(" "+(op == "detach" ? "<?=_('Unbind');?>" : "<?=_('Bind');?>"));*/
+		
+		usb_disks(tab_usbdisks) ;
+		});
+	}
+
+	function pin_tab(n) {
+		$.removeCookie('one',{path:'/'});
+		$.cookie('tab','tab'+n,{path:'/'});
+	}
+
+	function usb_disks(tabnum)
+	{
+		/* save table widths */
+		if (! diskinfo)
+		{
+			tableWidths = $("#usb_devices_list > table > thead > tr").children("td").map(function(i,v){return $(this).getHiddenDimensions().outerWidth;});
+
+			$("#usb_devices_list > table > thead > tr").children("td").each(function(i,v)
+			{
+				if (i in tableWidths)
+				{
+					$(this).css("width", tableWidths[i]);
+				}
+			});
+		}
+
+		$.post(UDURL,{action:"get_content",display:display},function(data)
+		{
+			maxWidth = [];
+			var toggled = $("tr.toggle-parts").filter(":visible").map(function(){return $(this).attr("name");}).get();
+			if (data)
+			{
+				$('#usb_devices_list').html(data);
+
+			}
+			$.each(toggled, function(k,v)
+			{
+				if(v.length)
+				{
+					$("tr[name='"+v+"']").prev().find("i.fa-plus-square").removeClass("fa-plus-square").addClass("fa-minus-square");
+					$("tr[name='"+v+"']").css("display", "table-row");
+				}
+			});
+		});
+	}
+
+	function ping_poll(tabnum)
+	{
+		$.post(UDURL,{action:"update_ping"});
+		setTimeout(ping_poll, 15000, tabnum);
+	}
+
+	function refresh_page(tabnum)
+	{
+		$.post(UDURL,{action:"refresh_page"});
+		setTimeout(refresh_page, 3000, tabnum);
+	}
+
+	function detect_usb_disk_change(tabnum) {
+		if ($('#tab'+tabnum).is(':checked')) {
+			clearTimeout(timers.usbdisks);
+			if ( $("tr.toggle-port").find("input[name='portkey']:visible").length )
+			{
+				timers.usbdisks=setTimeout('detect_usb_disk_change('+tabnum+')',500);
+				return false;
+			}
+			$.post(UDURL,{action:"detect"},function(data)
+			{
+				do_reload = false;
+				if (diskinfo && diskinfo !== data.diskinfo)
+				{
+					do_reload = true;
+				}
+				if(data.reload)
+				{
+					do_reload = true;
+					$.post(UDURL,{action:"remove_hook"});
+				}
+				diskinfo = data.diskinfo;
+				if (do_reload)
+				{
+					usb_disks(tabnum);
+				}
+			},"json").always(function()
+			{
+				timers.usbdisks=setTimeout('detect_usb_disk_change('+tabnum+')',500);
+			});
+		} else {
+			clearTimeout(timers.usbdisks);
+		}
+		return false;
+	}
+
+	function showInput() {
+		$(this).off('click');
+		$(this).siblings('input').each(function(){$(this).show();});
+		$(this).siblings('input').focus();
+		$(this).hide();
+	}
+
+	function hideInput() {
+		$(this).hide();
+		$(this).siblings('span').show();
+		$(this).siblings('span').click(showInput);
+	}
+
+
+	function load_hosts(el, action) {
+		var target = $(el).parents("div").find("*[name='IP']");
+		var old = $(el).html();
+		$(el).html("<i class='fa fa-circle-o-notch fa-spin'></i> <?=_('Searching');?>");
+		$.post(UDURL,{'action': action, 'var': vars, 'network': network, 'workgroup': workgroup}).done(function(data)
+		{
+			$(el).html(old);
+			if (data) {
+				var hosts = data.split('\n');
+				if (hosts.length) {
+					var add = "<select name='IP' class='swal-content__input' required>";
+					for(var i = 0;i < hosts.length;i++)
+					{
+						if (hosts[i].length)
+						{
+							add += "<option value='"+hosts[i].trim()+"'>"+hosts[i].trim()+"</option>";
+						}
+					}
+					target.replaceWith(add+"</select>")
+				} else {
+					target.replaceWith("<input type='text' name='IP' class='swal-content__input' autocomplete='off'>");
+				}
+			}
+		});
+	}
+
+	function load_shares(el, ip, user, pass, action) {
+		var old = $(el).html();
+		var target = $(el).parents("div").find("*[name='SHARE']");
+		$(el).html("<i class='fa fa-circle-o-notch fa-spin'></i> <?=_('Loading');?>");
+		var opts = new Object();
+		opts["action"] = action;
+		opts["IP"] = ip;
+		opts["USER"] = user;
+		opts["PASS"] = pass;
+		$.post(UDURL,opts).done(function(data)
+		{
+			$(el).html(old);
+			if (data != "") {
+				var shares = data.split('\n');
+				if (shares.length) {
+					var add = "<select name='SHARE' class='swal-content__input' required>";
+					for(var i = 0;i < shares.length;i++) {
+						if (shares[i].length) {
+							add += "<option value='"+shares[i]+"'>"+shares[i]+"</option>";
+						}
+					}
+					target.replaceWith(add+"</select>");
+				} else {
+					target.replaceWith("<input type='text' name='SHARE' class='swal-content__input' autocomplete='off' required>");
+				}
+			} else {
+				target.replaceWith("<input type='text' name='SHARE' class='swal-content__input' autocomplete='off' required>");
+			}
+		});
+	}
+
+	function getVal(el, name) {
+		el = $(el).find("*[name="+name+"]");
+		return value = ( $(el).attr('type') == 'checkbox' ) ? ($(el).is(':checked') ? "on" : "off") : $(el).val();
+	}
+
+	function get_tab_title_by_name(name) {
+		var tab		= $("input[name$=tabs] + label").filter(function(){return $(this).text() === name;}).prev();
+		var title	= $("div#title > span.left"		).filter(function(){return $(this).text() === name;}).parent();
+		if (tab.length) {
+			return tab
+		} else if (title.length) {
+			return title
+		} else {
+			return $(document)
+		}
+	}
+
+	function addButtonTab(Button, Name, autoHide, Append)
+	{
+		if (typeof(autoHide) == "undefined") autoHide = true;
+		if (typeof(Append)	 == "undefined") Append	 = true;
+
+		var Target		= get_tab_title_by_name(Name);
+		var elementId 	= 'event-' + new Date().getTime() * Math.floor(Math.random()*100000);
+		var element	= $("<span id='"+elementId+"' class='status'>"+Button+"</span>");
+
+		if (element.find("input[type='button']").length)
+		{
+			element.addClass("vhshift");
+			element.find("input[type='button']").prop("style","padding-top: 5px; padding-bottom: 5px; margin-top:-3px; margin-bottom:0;");
+		}
+
+		if (Target.prop('nodeName') === "DIV")
+		{
+			element.addClass("vhshift");
+			if (Append)
+			{
+				Target.append(element);
+			}
+			else
+			{
+				Target.prepend(element);
+			}
+		}
+		else if (Target.prop('nodeName') === "INPUT")
+		{
+			element.css("display","none");
+
+			if (Append)
+			{
+				$('.tabs').append(element);
+			}
+			else
+			{
+				$('.tabs').prepend(element);
+			}
+
+			Target.bind({click:function()
+			{
+				$('#'+elementId).fadeIn('slow');}
+			});
+
+			if (Target.is(':checked') || ! autoHide) {
+				$('#'+elementId).fadeIn('slow');
+			}
+
+			$("input[name$=tabs]").each(function()
+			{
+				if (! $(this).is(Target) && autoHide )
+				{
+					$(this).bind({click:function()
+					{
+						$('#'+elementId).fadeOut('slow');}
+					});
+				}
+			});
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	function swalShowResult(success) {
+		opts = (success) ? {title:"<?=_('Success')?>!",icon:"success"} : {title:"<?=_('Fail')?>!",icon:"error"};
+		swal2({title:opts.title,icon:opts.icon,text:" ",buttons:{confirm:{visible:false},cancel:{visible:false}},timer:1800});
+	}
+
+	function doUnassignedDevicesSurvey(surveyName, surveyOption) {
+		var survey = $("div[data-survey-name="+ surveyName +"]");
+		var numQuestions = survey.find("div[data-question]").length;
+		var surveyData = new Array
+		var index = 0;
+
+		var evalCondition = function(obj, selector){
+		if (obj.find(selector).length) {
+			evaled = $.trim(obj.find(selector).eq(0).text())
+			if (evaled.length ) {
+				return eval(evaled);
+			}
+			return null;
+		}
+	}
+
+	var getAttr = function(obj, name, defaultValue) {
+		return (typeof obj.attr(name) !== "undefined") ? obj.attr(name) : defaultValue;
+	}
+
+	function showSwal(direction="=") {
+		switch(direction) {
+			case '>':index++;break;
+			case '<':index--;break;
+		}
+		if(index >= numQuestions){return true;}
+		question  = survey.find("div[data-question]").eq(index);
+		condition = question.find("div[data-question-condition]").eq(0);
+
+		if (condition.length && ! eval($.trim(condition.text())) ) {
+			showSwal(direction);
+		}
+
+		content = question.find("div[data-question-content]").html();
+		format = question.find("div[data-question-format]");
+		if (format.length) { 
+			eval("formatOpts = " + $.trim(format.text()));
+			content = content.formatUnicorn(formatOpts);
+		}
+
+		has_checked = ["checkbox","radio","option"];
+		restore_content=$("<div></div>").html(content);
+		restore_content.find(":input").each(function(i,v) {
+			name = $(this).prop("name");
+			if (name in surveyData) {
+				if ($.inArray($(this).prop("type"), has_checked) != -1 ) {
+					if ( $(this).val() == surveyData[name] ) { 
+						$(this).attr("checked",true);
+					}
+				} else if ($(this).prop("type") == "select-one") {
+				$(this).find("option[value="+ surveyData[name] +"]").attr("selected",true);
+				} else { 
+					$(this).attr("value",surveyData[name]);
+				}
+			}
+		});
+		content = restore_content[0].outerHTML;
+		button = {back:getAttr(question, "data-question-button-back","<?=_('Back')?>"),cancel:getAttr(question, "data-question-button-cancel","<?=_('Cancel')?>"),
+					done:getAttr(question, "data-question-button-done","<?=_('Done')?>"),next:getAttr(question, "data-question-button-next","<?=_('Next')?>")};
+
+		swalOpts = new Object;
+		swalOpts.title   = question.attr("data-question-title");
+		swalOpts.content = {element:"div",attributes:{innerHTML:content}};
+		swalOpts.icon    =  getAttr(question, "data-question-icon","info");
+		swalOpts.closeOnClickOutside = false;
+		swalOpts.buttons = new Object;
+		swalOpts.buttons.confirm = (index > 0) ? {text: button.cancel, value: null,  visible: true, className: "", closeModal: true} : {text: "", value: null, visible: false, className: "", closeModal: true};
+		swalOpts.buttons.cancel  = (index > 0) ? {text: button.back,   value: false, visible: true, className: "", closeModal: false} :
+											 {text: button.cancel, value: null,  visible: true, className: "", closeModal: true};
+		swalOpts.buttons.next    = (index == numQuestions - 1 ) ? {text:button.done, value: true, visible: true, className: "", closeModal: false}:
+                                                              {text:button.next, value: true, visible: true, className: "", closeModal: false};
+		swal2(swalOpts).then( (response) => {
+			emptyInputs = $.grep($(".swal-modal").find(":input"), function (e,v){ e = $(e);
+				switch (e.prop('type')) {
+					case 'radio': if (e.is(":checked")){surveyData[e.prop("name")] = e.val();}; n=$(":input[name="+e.prop("name")+"]"); return (n.is("[required]") && ! n.is(":checked")); break;
+					case 'option':
+					case 'checkbox': if(e.is(":checked")){surveyData[e.prop("name")] = e.val()}; return (e.is("[required]") && ! e.is(":checked")); break;
+					case 'select-one': if (e.has(":checked")){surveyData[e.prop("name")] = e.find(":checked").val();}; n=$(":input[name="+e.prop("name")+"]"); return (n.is("[required]") && ! n.has(":checked")); break;
+
+					default: if (e.val()||e.prop("name")){surveyData[e.prop("name")] = e.val()}; return (e.is("[required]") && ! e.val()); break;
+				}
+			});
+			if (response)
+			{
+				if (emptyInputs.length) {
+					return "=";
+				} else if (! emptyInputs.length && index <= numQuestions - 1) {
+					evaled = evalCondition(question, "div[data-question-done]");
+					if (index < numQuestions - 1) {
+						if (evaled !== null && evaled === true) return ">";
+							if (evaled !== null && evaled === false) return "<";
+							else return ">";
+						} else if(index == numQuestions - 1) {
+							if (evaled !== null && evaled === false) return "=";
+							$(".swal-button--cancel").prop("disabled",true);
+							$(".swal-button--confirm").prop("disabled",true);
+							evalCondition(survey,"div[data-survey-done]");
+							if (getAttr(survey.find("div[data-survey-done]").eq(0),"data-survey-done-wait", "true") == "false" ) {
+								setTimeout(() => { swal2({buttons:{confirm:{visible:false},cancel:{visible:false}},timer:100}) }, 1500)
+							}
+							return true;
+						}
+			}
+		} else {
+			if ( response === false && index <= numQuestions ) {
+				return "<";
+			} else if ( response === null  ) { 
+				return true;
+			}
+		}
+		return "=";
+		}).then( (response2) => {
+			if (typeof response2 !== "boolean") return showSwal(response2);
+				else return false;
+		});
+	}
+	showSwal();
+}
+</script>
+
+<?=$Preclear ? $Preclear->html() : "";?>
+
+:unassgned_devices_switches_plug:
+> Turn on the **Shares** switch to change the web page to show shares. Turn off the **Shares** switch to change the web page to hide shares.
+>
+> Turn on the **Disks** switch to change the web page to show disk devices. Turn off the **Diskss** switch to change the web page to hide disk devices.
+>
+> Turn on the **Partitions** switch to show all disk device partitions. Turn off **Partitons** switch to switch back to not show disk device partitions.
+>
+> Click on the <i style='color:black;font-weight:bold;' class="fa fa-refresh"></i> icon to rescan disks.
+>
+> Click on the <i style='color:black;font-weight:bold;' class="fa fa-gear"></i> icon to go to the UD Settings.
+>
+> You can spin a disk up or down by clicking on the disk ball indicator.  Applies to version 6.9 and later only.
+:end
+
+<div id="usb_devices_list">
+</div>
+
+:unassigned_devices_general_help_plug:
+> **Unassigned Devices is called UD for short.**
+>
+> Hover your mouse over an any active area on the UD page and a tool tip will show you what clicking that area does.
+> You can mount USB devices, sata drives, Remote SMB/NFS shares, and ISO Files with UD.  Any devices with the auto mount switch on will be mounted when the array is started.  All drives and SMB/NFS Mounts are unmounted when the array is stopped on the 'stopping_svcs' event.
+> If you want to share your drive, you can turn on the Share switch.  The default for Remote SMB shares is Public read/write access.  Enable SMB Security by user in the Unassigned Devices Settings.  NFS shares are exported and access is read/write.  The export of NFS devices is enabled in the Unassigned Devices settings. You can also enable a common script that will be executed on every disk mount.  In order to share any UD device, sharing needs to be enabled in the UD Settings and the switch turned on to share the particular device.  SMB/NFS remove shares and ISO mounts are always shared.
+> After entering a mount point, press &lt;Enter&gt; to save the change.
+>
+> Additional options are available when you click on the <i style='color:black;font-weight:bold;' class="fa fa-plus-square"></i> icon by device identification.  When the disk is unmounted, the mount point of the device can be changed.  The disk label will also be changed.  A disk can be formatted and an fsck run to check the disk.
+>
+> The 'Settings->Unassigned Devices' security settings for SMB and NFS must be set correctly for SMB and NFS sharing to work properly.
+>
+> If the mount button is grayed out for a SMB/NFS remote share, the remote server is not responding to a ping.  The remote share server must respond to a ping or UD will consider it off-line.
+>
+> UD has a destructive mode that allows deleting disk partitions and formatting disks.	If Destructive Mode is not turned on in the UD Settings, you WILL NOT be able to format a disk or remove partitions.  Go the the 'Settings->Unassigned Devices' to set the destructive mode.
+>
+> **To format a disk:**
+>
+> + Destructive mode must be enabled.
+> + Disk must have all partitions removed.  Unmount disk, click on the <i style='color:black;font-weight:bold;' class='fa fa-plus-square'></i> icon,, and click on all <i style='color:red;font-weight:bold;' class='fa fa-remove hdd'></i> icons to delete partitions.
+> + If the disk has been precelared and shows a grayed 'Format' button, click on the <i style='color:black;font-weight:bold;' class='fa fa-plus-square'></i> icon, then click on the <i style='color:red;font-weight:bold;' class='fa fa-remove hdd'></i> icon to delete the preclear status file.
+>
+> **Note: A disk partitioned in UD is compatible with the array disk partitioning and can be added to the array.  Supported file formats are XFS, XFS encrypted, BTRFS and BTRFS encrypted.**
+>
+> **Encrypted Disks:**
+>
+> + Any disk formatted in UD that is encrypted will use the array password/passphrase and can be incorporated into the array.  Or you can set a unique password when it is formatted.  If you set a password on the disk when it is formatted, you will need to enter a disk password in Unassignd Devices->Settings for that disk.
+> + Any disk that was not encrypted with the Array password/passphrase can be mounted by setting a per disk passord set in Unassigned Devices->Settings.
+>
+> **Unassigned devices script:**
+>
+> UD includes a script that is used for mounting and unmounting devices and SMB/NFS mounts. These scripts can be used from the command line or in your scripts as necessary.
+>
+> + '/usr/local/sbin/rc.unassigned mount auto' - all devices and SMB/NFS mounts set to auto mount will be mounted.
+> + '/usr/local/sbin/rc.unassigned umount auto' - all devices and SMB/NFS mounts set to auto mount will be unmounted.
+> + '/usr/local/sbin/rc.unassigned umount all' - all devices and SMB/NFS mounts are unmounted in preparation for shutting down the array.
+> + '/usr/local/sbin/rc.unassigned mount /dev/sdX' - mount device sdX where 'X' is the device designator.
+> + '/usr/local/sbin/rc.unassigned umount /dev/sdX' - unmount device sdX where 'X' is the device designator. You can use this command in a UD script to unmount the device when the script has completed.
+> + '/usr/local/sbin/rc.unassigned spindown devX' - spin down a disk.  The devX is the device name in the UD page.  If the device name is 'Dev 1', then use dev1 as the device to spin down.  SSDs will not spin down.
+>
+> Be careful using the /dev/sdX designation because it can change after a reboot.
+:end
+
+<script type="text/javascript">
+
+
+
+	var maxWidth	= [];
+	var tableWidths = [];
+	var display		= <?=json_encode($display);?>;
+	var vars		= <?=json_encode($var);?>;
+	var network		= [];
+	var workgroup	= "";
+
+	/* Reload page if browser back button was used */
+	window.addEventListener( "pageshow", function ( event )
+	{
+		var historyTraversal = event.persisted || ( typeof window.performance != "undefined" && window.performance.navigation.type === 2 );
+		if ( historyTraversal ) {
+			/* Handle page restore. */
+			window.location.reload();
+		}
+	});
+
+	<?
+	if (isset($var['WORKGROUP'])) echo "var workgroup = '{$var['WORKGROUP']}';\n";
+	for ($i=0; $i < 11; $i++)
+	{ 
+		$_var = "eth{$i}";
+		if (isset($$_var) )
+		{
+			$iface = $$_var;
+			$gateway = array_values(array_flip(preg_grep("/GATEWAY:/", array_flip($iface))));
+			$ipaddr	= array_values(array_flip(preg_grep("/IPADDR:/",	array_flip($iface))));
+			$netmask = array_values(array_flip(preg_grep("/NETMASK/",	array_flip($iface))));
+			for ($z=0; $z < count($ipaddr); $z++)
+			{ 
+				echo "network.push({gateway:'{$ipaddr[$z]}', ip:'{$ipaddr[$z]}', netmask:'{$netmask[$z]}'});\n";
+			}
+		}
+	}
+	?>
+
+	var tab_usbdisks	= $('input[name$="tabs"]').length;
+	var UDURL		= '/plugins/<?=$plugin;?>/USB_Devices.php';
+	var diskinfo		= "";
+
+	if (typeof swal2 === "undefined")
+	{
+		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '<?autov("/plugins/${plugin}/assets/sweetalert2.css");?>') );
+		$.getScript( '/plugins/<?=$plugin;?>/assets/sweetalert2.js');
+	}
+
+	$('#tab'+tab_usbdisks).bind({click:function() {pin_tab(tab_usbdisks); detect_usb_disk_change(tab_usbdisks);}});
+
+	/* Remove or hide diskio toggle */
+	tabElement = get_tab_title_by_name("<?=_('Unassigned USB Devices')?>");
+	if (tabElement.prop("nodeName") == "DIV")
+	{
+		tabElement.addClass("disable_diskio");
+	 	$(function()
+	 	{
+	 		tabElement.find("i.toggle").remove();
+	 	});
+	} else if (tabElement.prop("nodeName") == "INPUT")
+	{
+		tabElement.bind({click:function() {$('i.toggle').hide('slow');}});
+	}
+
+	/* Bind Arrive events */
+	$("#usb_devices_list").arrive("tr",{onceOnly:false},function()
+	{
+		tr = $(this);
+
+		maxWidth.push(tr.find("td:nth-child(2) > span").getHiddenDimensions().width );
+		$(".usb_disks > thead > tr > td:nth-child(2)").css("min-width", Math.max.apply(Math, maxWidth) + 10 );
+
+		tr.find("span.toggle-port").click(function(e)
+		{
+			$(this).disableSelection();port = $(this).attr("port");el = $(this);
+			$(".toggle-port-"+port).slideToggle(0,function(){
+				if ( $("tr.toggle-port-"+port+":first").is(":visible") ){
+					el.find(".fa-append").addClass("fa-minus-square").removeClass("fa-plus-square");
+				} else {
+					el.find(".fa-append").removeClass("fa-minus-square").addClass("fa-plus-square");
+				}
+			});
+		});
+		tr.find("span.toggle-rmtip").click(function(e)
+		{
+			$(this).disableSelection();hostport = $(this).attr("hostport");el = $(this);
+			$(".toggle-rmtip-"+hostport).slideToggle(0,function(){
+				if ( $("tr.toggle-rmtip-"+hostport+":first").is(":visible") ){
+					el.find(".fa-append").addClass("fa-minus-square").removeClass("fa-plus-square");
+				} else {
+					el.find(".fa-append").removeClass("fa-minus-square").addClass("fa-plus-square");
+				}
+			});
+		});
+		tr.find( "span.text" ).click(showInput);
+		tr.find( "input[name='mountpoint']" ).blur(hideInput);
+		tr.find( "button[role$=bind]" ).on( "click", function()
+		{
+			usbip_op(this, $(this).attr("role"), $(this).attr("device"));
+		});
+			tr.find( "button[role$=attach]" ).on( "click", function()
+		{
+			usbip_attach(this, $(this).attr("role"), $(this).attr("hostport"));
+		});
+			tr.find( "button[role$=detach]" ).on( "click", function()
+		{
+			usbip_detach(this, $(this).attr("role"), $(this).attr("port"));
+		});
+		tr.find("button[role=format]").click(function(){format_disk(this, $(this).attr("context"), $(this).attr("device"));});
+	});
+
+	$( "#usb_devices_list" ).arrive(".show-rmtip", {onceOnly:false}, function()
+	{
+		$(this).css("display", $(".rmtip-switch").is(":checked") ? "block" : "none");
+	});
+
+	$( "#usb_devices_list" ).arrive(".show-disks", {onceOnly:false}, function()
+	{
+		$(this).css("display", $(".disks-switch").is(":checked") ? "block" : "none");
+	});
+
+	$( "#usb_devices_list" ).arrive(".show-ports", {onceOnly:false}, function()
+	{
+		$(this).css("display", $(".port-switch").is(":checked") ? "block" : "none");
+	});
+
+	$(function()
+	{
+		/* Add icons to Tab/Title bar */
+		addButtonTab('<a title="<?=_("Unassigned Devices USB Settings");?>" href="/Settings/USBIP_Settings"><i class="fa fa-gear"></i></a>',
+								 "<?=_('Unassigned USB Devices');?>");
+		addButtonTab('<a style="cursor:pointer;" onclick="$.post(\''+UDURL+'\',{\'action\':\'rescan_disks\'});" title="<?=_("Refresh Disks and Configuration");?>"><i class="fa fa-refresh"></i></a>',
+								 "<?=_('Unassigned USB Devices');?>");
+		addButtonTab('<a style="cursor:pointer;" title="<?=_("Switch On to Show Ports");?>"><input type="checkbox" class="port-switch"></a>',
+								 "<?=_('Unassigned USB Devices');?>");
+		addButtonTab('<a style="cursor:pointer;" title="<?=_("Switch On to Show SMB/NFS/ISO Shares");?>"><input type="checkbox" class="rmtip-switch"></a>',
+								 "<?=_('Unassigned USB Devices');?>");
+		addButtonTab('<a style="cursor:pointer;" title="<?=_("Switch On to Show Disk Devices");?>"><input type="checkbox" class="disks-switch"></a>',
+								 "<?=_('Unassigned USB Devices');?>");
+
+		/* Add switchButton to Tab/Title bar */
+		$('.disks-switch').switchButton({ labels_placement: "left", on_label: "<?=_('Local');?>", off_label: "<?=_('Local');?>", checked: $.cookie('USB-disks-view') != 'false'});
+		$('.disks-switch').change(function()
+		{
+			$('.show-disks').slideToggle('slow');
+			$.cookie('USB-disks-view', $('.disks-switch').is(':checked') ? 'true' : 'false', { expires: 3650, path:'/' });
+		});
+
+		$('.rmtip-switch').switchButton({ labels_placement: "left", on_label: "<?=_('Remote');?>", off_label: "<?=_('Remote');?>", checked: $.cookie('USB-shares-view') != 'false'});
+		$('.rmtip-switch').change(function()
+		{
+			$('.show-rmtip').slideToggle('slow');
+			$.cookie('USB-shares-view', $('.rmtip-switch').is(':checked') ? 'true' : 'false', { expires: 3650, path:'/' });
+		});
+
+		$('.port-switch').switchButton({ labels_placement: "left", on_label: "<?=_('Ports');?>", off_label: "<?=_('Ports');?>", checked: $.cookie('USBIP-port-view') != 'false'});
+		$('.port-switch').change(function()
+		{
+			$('.show-ports').slideToggle('slow');
+			$.cookie('USBIP-port-view', $('.port-switch').is(':checked') ? 'true' : 'false', { expires: 3650, path:'/' });
+		});
+
+		/* Load contents if tab is checked 
+		if ($('#tab'+tab_usbdisks).is(':checked')) { */
+			$('#tab'+tab_usbdisks).trigger("click");
+			$.removeCookie('one',{path:'/'});
+		/*}*/
+
+		/* Load page content */
+		if ( !$('#spin_div').length ) {
+			$('#spinner').html("<tr><td colspan='8'><div id='spin_div' class='spinner'></div></td></tr>");
+		}
+		$("#usb_devices_list").html( $('div.spinner').html(unraid_logo) );
+
+		usb_disks(tab_usbdisks);
+		detect_usb_disk_change(tab_usbdisks);
+		ping_poll(tab_usbdisks);
+		refresh_page(tab_usbdisks);
+	});
+</script>
+
+
+
+<?endif;?>

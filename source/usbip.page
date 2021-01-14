@@ -1,0 +1,5 @@
+Menu="/boot/config/plugins/unraid.usbip-gui/usbip.cfg Main_usbip=Tasks:1"
+Type="xmenu"
+Title="Main_USBIP"
+Code="f1fe"
+Tabs="true"
