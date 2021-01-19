@@ -17,7 +17,7 @@ $translations = file_exists("$docroot/webGui/include/Translations.php");
 
 if ($translations) {
 	/* add translations */
-	$_SERVER['REQUEST_URI'] = 'USB_Devices' ;
+	$_SERVER['REQUEST_URI'] = 'USBIP_Devices' ;
 	require_once "$docroot/webGui/include/Translations.php";
 } else {
 	/* legacy support (without javascript) */
@@ -311,13 +311,14 @@ switch ($_POST['action']) {
 		echo "</tbody></table></div>";
 
 		/* Remote USBIP Servers */
-		echo "<div id='smb_tab' class='show-rmtip'>";
-		echo "<div id='title' class='show-rmtip samba_mounts'><span class='left'><img src='/plugins/$plugin/icons/nfs.png' class='icon'>"._('Remote USBIP Hosts')." &nbsp;</span></div>";
-		echo "<table class='disk_status wide samba_mounts'><thead><tr><td>"._('Remote host')."</td><td>"._('Busid')."</td><td>"._('Action')."</td><td>"._('Vendor:Product(Additional Details)')."</td><td>"._('Remove')."</td><td>"._('Settings')."</td><td></td><td></td><td></td><td>"._('Size')."</td><td>"._('Used')."</td><td>"._('Free')."</td><td>"._('Log')."</td></tr></thead>";
+		echo "<div id='rmtip_tab' class='show-rmtip'>";
+		
+		echo "<div class='show-rmtip' id='rmtip_tab'><div id='title'><span class='left'><img src='/plugins/$plugin/icons/nfs.png' class='icon'>"._('Remote USBIP Hosts')." &nbsp;</span></div>";
+		echo "<table class='disk_status wide remote_ip'><thead><tr><td>"._('Remote host')."</td><td>"._('Busid')."</td><td>"._('Action')."</td><td>"._('Vendor:Product(Additional Details)')."</td><td></td><td>"._('Remove')."</td><td>"._('Settings')."</td><td></td><td></td><td>"._('Size')."</td><td>"._('Used')."</td><td>"._('Free')."</td><td>"._('Log')."</td></tr></thead>";
 		echo "<tbody>";
 		$ds1 = time();
 		$remote_usbip = get_remote_usbip();
-		
+		$ii=1 ;
 		#var_dump($remote_usbip) ;
 		unassigned_log("get_remote_usbip: ".($ds1 - microtime(true))."s!","DEBUG");
 		if (count($remote_usbip)) {
@@ -330,10 +331,12 @@ switch ($_POST['action']) {
 				if (isset($busids)) {
 				foreach ($busids as $busidkey => $busiddetail)
 				{
+				echo "<tbody>" ;
 				#echo "<tr>";
 				#var_dump($cmd_return) ;
 				$hostport = $key."".ltrim($busidkey) ;
-				echo "<tr class='toggle-hdd'><td><i class='fa fa-minus-circle orb grey-orb'></i>"; 
+				$hostport = "HP".$ii ;
+				echo "<tr class='toggle-rmtips'><td><i class='fa fa-minus-circle orb grey-orb'></i>"; 
 				#.$portline[2]."</td><td>".$dbutton."</td>";
 				echo $key."</td>";
 				
@@ -346,24 +349,28 @@ switch ($_POST['action']) {
 				echo "<td>".$busidkey."</td><td>" ;
 			
 				echo "<class='attach'>{$abutton}   ";
-				echo "<td><span title='"._("Click to view/hide additional details")."' class='exec toggle-rmtip' hostport='{$hostport}'><i class='fa fa-plus-square fa-append'></i></span>".$busiddetail["vendor"].$busiddetail["product"]."</td><td>" ;
+				echo "<td><span title='"._("Click to view/hide additional Remote details")."' class='exec toggle-rmtip' hostport='{$hostport}'><i class='fa fa-plus-square fa-append'></i></span>".$busiddetail["vendor"].$busiddetail["product"]."</td><td>" ;
 				#var_dump($busiddetail) ;
 				$detail_lines=$busiddetail["detail"] ;
+				echo "</td><td title='"._("Remove Remote Host configuration")."'><a style='color:#CC0000;font-weight:bold;cursor:pointer;' onclick='remove_remote_host_config(\"{$key}\")'><i class='fa fa-remove hdd'></a></td></tr>" ;
 
 		
 			foreach($detail_lines as $line)
 			{
 				
 				
-				$style = "style='display:none;'" ;
+				$style = "style='display:none;' " ;
+				#$style = "" ;
 				#<tr class='toggle-parts toggle-".basename($disk['device'])."' name='toggle-".basename($disk['device'])."' $style>"
-				echo "<tr class='toggle-parts toggle-rmtip-".basename($hostport)."' name='toggle-rmtip-".basename($hostport)."' $style>";
-				echo "<td></td><td>".htmlspecialchars($line)."</td></tr>";
+				echo "<tr class='toggle-parts toggle-rmtip-".$hostport."' name='toggle-rmtip-".$hostport."'".$style.">";
+				echo "<td></td><td></td><td></td><td>".htmlspecialchars($line)."</td></tr>" ;
+			
+
 				
 				
 			}
 		
-	
+			$ii++ ;
 				echo "</tr>";
 				}
 			}
@@ -384,7 +391,7 @@ switch ($_POST['action']) {
 		echo "<div id='port_tab' class='show-ports'>";
 		$ct = "";
 		$port=parse_usbip_port() ;
-		echo "<tr class='toggle-ports'>";
+		#echo "<tr class='toggle-ports'>";
 		#var_dump($port) ;
 		echo "<div class='show-ports' id='ports_tab'><div id='title'><span class='left'><img src='/plugins/{$plugin}/icons/historical.png' class='icon'>"._('Attached Ports')."</span></div>";
 		echo "<table class='disk_status wide usb_absent'><thead><tr><td>"._('Device')."</td><td>"._('HUB Port=>Remote host')."</td><td></td><td></td><td></td><td></td><td></td><td></td><td>"._('')."</td><td>"._('')."</td></tr></thead>" ;
@@ -672,59 +679,48 @@ switch ($_POST['action']) {
 		break;
 
 	/*	NFS	*/
-/*	case 'list_nfs_hosts':
+	case 'list_nfs_hosts':
 		$network = $_POST['network'];
 		foreach ($network as $iface)
 		{
 			$ip = $iface['ip'];
 			$netmask = $iface['netmask'];
-			echo shell_exec("/usr/bin/timeout -s 13 5 plugins/{$plugin}/scripts/port_ping.sh {$ip} {$netmask} 2049 2>/dev/null | sort -n -t . -k 1,1 -k 2,2 -k 3,3 -k 4,4");
+			echo shell_exec("/usr/bin/timeout -s 13 5 plugins/{$plugin}/scripts/port_ping.sh {$ip} {$netmask} 3240 2>/dev/null | sort -n -t . -k 1,1 -k 2,2 -k 3,3 -k 4,4");
 		}
 		break;
 
-	case 'list_nfs_shares':
+/*	case 'list_nfs_shares':
 		$ip = urldecode($_POST['IP']);
 		$rc = timed_exec(10, "/usr/sbin/showmount --no-headers -e '{$ip}' 2>/dev/null | rev | cut -d' ' -f2- | rev | sort");
 		echo $rc ? $rc : " ";
 		break;
 
 	/* SMB SHARES */
-/*	case 'add_samba_share':
+	case 'add_remote_host':
 		$rc = TRUE;
 
 		$ip = urldecode($_POST['IP']);
 		$ip = implode("",explode("\\", $ip));
 		$ip = stripslashes(trim($ip));
-		$protocol = urldecode($_POST['PROTOCOL']);
-		$user = isset($_POST['USER']) ? urldecode($_POST['USER']) : "";
-		$domain = isset($_POST['DOMAIN']) ? urldecode($_POST['DOMAIN']) : "";
-		$pass = isset($_POST['PASS']) ? urldecode($_POST['PASS']) : "";
-		$path = isset($_POST['SHARE']) ? urldecode($_POST['SHARE']) : "";
-		$path = implode("",explode("\\", $path));
-		$path = stripslashes(trim($path));
-		$share = basename($path);
-		if ($share) {
-			$device = ($protocol == "NFS") ? "{$ip}:{$path}" : "//".strtoupper($ip)."/{$share}";
+
+		if ($ip) {
+			$device = $ip ;
 			$device = str_replace("$", "", $device);
-			set_samba_config("{$device}", "protocol", $protocol);
-			set_samba_config("{$device}", "ip", (is_ip($ip) ? $ip : strtoupper($ip)));
-			set_samba_config("{$device}", "path", $path);
-			set_samba_config("{$device}", "user", $user);
-			set_samba_config("{$device}", "domain", $domain);
-			set_samba_config("{$device}", "pass", encrypt_data($pass));
-			set_samba_config("{$device}", "share", safe_name($share, FALSE));
+		
+			set_remote_host_config("{$device}", "ip", (is_ip($ip) ? $ip : strtoupper($ip)));
+
 
 			/* Refresh the ping status */
-/*			is_samba_server_online($ip, FALSE);
+			is_usbip_server_online($ip, FALSE);
 		}
 		echo json_encode($rc);
 		break;
 
-	case 'remove_samba_config':
-		$device = urldecode(($_POST['device']));
-		echo json_encode(remove_config_samba($device));
+	case 'remove_remote_host_config':
+		$ip = urldecode(($_POST['ip']));
+		echo json_encode(remove_config_remote_host($ip));
 		break;
-
+/*
 	case 'samba_automount':
 		$device = urldecode(($_POST['device']));
 		$status = urldecode(($_POST['status']));

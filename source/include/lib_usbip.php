@@ -254,7 +254,7 @@ function is_disk_running($dev) {
 	return $rc;
 }
 
-function is_samba_server_online($ip, $mounted, $background=TRUE) {
+function is_usbip_server_online($ip, $mounted, $background=TRUE) {
 	global $paths, $plugin;
 
 	$is_alive = FALSE;
@@ -1264,8 +1264,8 @@ function get_samba_config($source, $var) {
 	return (isset($config[$source][$var])) ? $config[$source][$var] : FALSE;
 }
 
-function set_samba_config($source, $var, $val) {
-	$config_file = $GLOBALS["paths"]["samba_mount"];
+function set_remote_host_config($source, $var, $val) {
+	$config_file = $GLOBALS["paths"]["remote_usbip"];
 	$config = @parse_ini_file($config_file, true);
 	$config[$source][$var] = $val;
 	save_ini_file($config_file, $config);
@@ -1491,17 +1491,14 @@ function toggle_samba_share($source, $status) {
 	return ($config[$source]["smb_share"] == "yes") ? TRUE : FALSE;
 }
 
-function remove_config_samba($source) {
-	$config_file = $GLOBALS["paths"]["samba_mount"];
+function remove_config_remote_host($source) {
+	$config_file = $GLOBALS["paths"]["remote_usbip"];
 	$config = @parse_ini_file($config_file, true);
 	if ( isset($config[$source]) ) {
 		unassigned_log("Removing configuration '$source'.");
 	}
 	$command = $config[$source]['command'];
-	if ( isset($command) && is_file($command) ) {
-		@unlink($command);
-		unassigned_log("Removing script '$command'.");
-	}
+	
 	unset($config[$source]);
 	save_ini_file($config_file, $config);
 	return (! isset($config[$source])) ? TRUE : FALSE;
