@@ -60,9 +60,7 @@ The 'post-install' script.
 # Create plugin directory
 mkdir /boot/config/plugins/&name; 2>/dev/null
 mkdir /usr/local/emhttp/plugins/&name; 2>/dev/null
-
-# Remove old packages
-#find "&packages;/" -type f -iname "*.txz" -delete
+mkdir -p /tmp/&name;/config 2>/dev/null
 
 # Install the 'bundle'.
 installpkg &packages;/&name;-&version;.txz 	
@@ -70,11 +68,6 @@ installpkg &packages;/&name;-&version;.txz
 # Adjust plugin permissions.
 chmod 755 -R /usr/local/emhttp/plugins/&name; 2>/dev/null
 
-
-# Clean out old plugin packages
-#find /boot/config/plugins/&name; -maxdepth 1 -type f -iname "*.t*z" -delete
-#find &packages; -type f -iname "&name;*.txz" ! -iname "*&version;*" -delete
-#find &packages; -type f -iname "&name;*.md5" ! -iname "*&version;*" -delete
 
 
 echo ""
@@ -104,11 +97,11 @@ rm -rf /usr/local/emhttp/plugins/&name; \
        &packages;
 
 rm -f /tmp/plugins/&name;.plg 
-
+rm -r /tmp/&name;
 
 
 # Remove all plugin files from emhttp.
-rm -rf /usr/local/emhttp/plugins/&name; 2>/dev/null
+removepkg &packages;/&name;-&version;.txz 
 
 
 
