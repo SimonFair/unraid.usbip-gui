@@ -30,6 +30,9 @@ require_once("webGui/include/Helpers.php");
 
 if (isset($_POST['display'])) $display = $_POST['display'];
 if (isset($_POST['var'])) $var = $_POST['var'];
+check_usbip_modules() ;
+
+
 /*
 function netmasks($netmask, $rev = false)
 {
@@ -202,16 +205,23 @@ function render_partition($disk, $partition, $total=FALSE) {
 }
 */
 function make_mount_button($device) {
-	global $paths, $Preclear;
+	global $paths, $Preclear, $loaded_usbip_host;
 
 	$button = "<span><button device='{$device["BUSID"]}' class='mount' context='%s' role='%s' %s><i class='%s'></i>%s</button></span>";
 
-		if ($device["isflash"] == true) {
+		if ($device["isflash"] == true ) {
 		 $disabled = "disabled"	;
 		 $button = sprintf($button, $context, 'urflash', $disabled, 'fa fa-erase', _('UnRaid Flash'));
-		} else {
-			$disabled = "enabled";
-			
+		} 
+
+			if ($loaded_usbip_host == "0")
+			 {
+			$disabled = "disabled <a href=\"#\" title='"._("usbip_host module not loaded")."'" ;
+		 } 
+			else 
+			{
+			 $disabled = "enabled"; 
+			}
 
 		if ($device["DRIVER"] == "usbip-host") {
 		$context = "disk";
@@ -223,15 +233,24 @@ function make_mount_button($device) {
 		}
 
 		
-		}
+		
+		
 
 	return $button;
 }
 function make_attach_button($device,$busid) {
-	global $paths, $Preclear;
+	global $paths, $Preclear , $loaded_vhci_hcd, $usbip_cmds_exist ;
 
 	$button = "<span><button hostport='".$device.";".ltrim($busid)."' class='mount' context='%s' role='%s' %s><i class='%s'></i>%s</button></span>";
 
+	if ($loaded_vhci_hcd == "0")
+			 {
+			$disabled = "disabled <a href=\"#\" title='"._("vhci_hcd module not loaded")."'" ;
+		 } 
+			else 
+			{
+			 $disabled = "enabled"; 
+			}
 
 
 			$context = "disk";
@@ -263,7 +282,17 @@ function make_detach_button($port) {
 
 switch ($_POST['action']) {
 	case 'get_content':
-		global $paths;
+		global $paths, $usbip_cmds_exist;
+
+		if (!$usbip_cmds_exist || !$loaded_usbip_host || !$loaded_vhci_hcd) {
+
+			$notice="Following are missing or not loaded:" ;
+			if (!$usbip_cmds_exist) $notice.=" USBIP Commands" ;
+			if (!$loaded_usbip_host) $notice.=" usbip_host module" ;
+			if (!$loaded_vhci_hcd) $notice.=" vhci_hcd module" ;
+			#echo "<p class='notice 	'>"._('Targetcli in use unable to read status and config.').".</p>";
+		    echo "<p class='notice 	'>"._($notice).".</p>";
+		   }
 
 		unassigned_log("Starting page render [get_content]", "DEBUG");
 		$time		 = -microtime(true);
@@ -280,7 +309,10 @@ switch ($_POST['action']) {
 		$disks = get_all_usb_info();
 		#var_dump($disks) ;
 		echo "<div id='disks_tab' class='show-disks'>";
-		echo "<table class='disk_status wide disk_mounts'><thead><tr><td>"._('BusID')."</td><td>"._('Action')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('Reads')."</td><td>"._('Writes')."</td><td>"._('Settings')."</td><td>"._('FS')."</td><td>"._('Size')."</td><td>"._('Used')."</td><td>"._('Free')."</td><td>"._('Log')."</td></tr></thead>";
+		#echo "<table class='disk_status wide disk_mounts'><thead><tr><td>"._('BusID')."</td><td>"._('Action')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('Reads')."</td><td>"._('Writes')."</td><td>"._('Settings')."</td><td>"._('FS')."</td><td>"._('Size')."</td><td>"._('Used')."</td><td>"._('Free')."</td><td>"._('Log')." idden</td></tr></thead>";
+		echo "<table class='disk_status wide disk_mounts'><thead><tr><td>"._('BusID')."</td><td>"._('Action')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('Reads')."</td><td>"._('Writes')."</td><td>"._('Settings')."</td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td><td>"._('')." idden</td></tr></thead>";
+
+		
 		echo "<tbody>";
 	
 		if ( count($disks) ) {
@@ -306,7 +338,9 @@ switch ($_POST['action']) {
 		echo "</tr>";	
 			}
 		} else {
-			echo "<tr><td colspan='12' style='text-align:center;'>"._('No Unassigned Disks available').".</td></tr>";
+			echo "<tr><td colspan='12' style='text-align:center;'>"._('No Bindable Devices available').".</td></tr>";
+	
+
 		}
 		echo "</tbody></table></div>";
 
@@ -327,23 +361,21 @@ switch ($_POST['action']) {
 
 
 				$cmd_return=parse_usbip_remote($key) ;
+				#var_dump($cmd_return) ;
 				$busids = $cmd_return[$key] ;
 				if (isset($busids)) {
 				foreach ($busids as $busidkey => $busiddetail)
 				{
 				echo "<tbody>" ;
-				#echo "<tr>";
-				#var_dump($cmd_return) ;
+	
+				
 				$hostport = $key."".ltrim($busidkey) ;
 				$hostport = "HP".$ii ;
 				echo "<tr class='toggle-rmtips'><td><i class='fa fa-minus-circle orb grey-orb'></i>"; 
-				#.$portline[2]."</td><td>".$dbutton."</td>";
+
 				echo $key."</td>";
 				
-				#$busid = "<a href=\"#\" title='"._("Disk Log Information")."' onclick=\"openBox('/webGui/scripts/disk_log&amp;arg1={$disk}','Disk Log Information',600,900,false);return false\"><i class='fa fa-hdd-o icon'></i></a>";
-				#$busid .="<span title='"._("Click to view/hide partitions and mount points")."' class='exec toggle-rmtip' rmt='{$disk}'><i class='fa fa-plus-square fa-append'></i></span>";
-				
-				
+
 				$abutton = make_attach_button($key, $busidkey);		
 				
 				echo "<td>".$busidkey."</td><td>" ;
@@ -426,15 +458,13 @@ switch ($_POST['action']) {
 		
 	
 		}
-		if (! count($port)) {
-			$ct .= "<tr><td colspan='13' style='text-align:center;'>"._('No ports in use').".</td></tr>";
-		}
 
 		echo "</tr>";
-	
- 
 
-		
+
+		if ( ! count($port)) {
+			echo "<tr><td colspan='13' style='text-align:center;'>"._('No ports in use').".</td></tr>";
+		}
 
 
 		
@@ -468,13 +498,13 @@ switch ($_POST['action']) {
 
 		echo json_encode(array("reload" => is_file($paths['reload']), "diskinfo" => 0));
 		break;
-
+*/
 	case 'refresh_page':
 		if (! is_file($GLOBALS['paths']['reload'])) {
 			@touch($GLOBALS['paths']['reload']);
 		}
 		break;
-
+/*
 	case 'remove_hook':
 		@unlink($paths['reload']);
 		break;
@@ -760,84 +790,10 @@ switch ($_POST['action']) {
 		echo json_encode(array( 'result' => set_samba_config($device, "command", $cmd)));
 		break;
 
-	/* ISO FILE SHARES */
-/*	case 'add_iso_share':
-		$rc = TRUE;
-		$file = isset($_POST['ISO_FILE']) ? urldecode($_POST['ISO_FILE']) : "";
-		$file = implode("",explode("\\", $file));
-		$file = stripslashes(trim($file));
-		if (is_file($file)) {
-			$info = pathinfo($file);
-			$share = $info['filename'];
-			set_iso_config("{$file}", "file", $file);
-			set_iso_config("{$file}", "share", $share);
-		} else {
-			unassigned_log("ISO File '{$file}' not found.");
-			$rc = FALSE;
-		}
-		echo json_encode($rc);
-		break;
 
-	case 'remove_iso_config':
-		$device = urldecode(($_POST['device']));
-		echo json_encode(remove_config_iso($device));
-		break;
-
-	case 'iso_automount':
-		$device = urldecode(($_POST['device']));
-		$status = urldecode(($_POST['status']));
-		echo json_encode(array( 'result' => toggle_iso_automount($device, $status) ));
-		break;
-
-	case 'iso_background':
-		$device = urldecode(($_POST['device']));
-		$status = urldecode(($_POST['status']));
-		echo json_encode(array( 'result' => set_iso_config($device, "command_bg", $status)));
-		break;
-
-	case 'set_iso_command':
-		$device = urldecode(($_POST['device']));
-		$cmd = urldecode(($_POST['command']));
-		echo json_encode(array( 'result' => set_iso_config($device, "command", $cmd)));
-		break;
 
 	/*	MISC */
-/*	case 'rm_partition':
-		$device = urldecode($_POST['device']);
-		$partition = urldecode($_POST['partition']);
-		echo json_encode(remove_partition($device, $partition));
-		break;
 
-	case 'spin_down_disk':
-		$device = urldecode($_POST['device']);
-		echo json_encode(spin_disk(TRUE, $device));
-		break;
 
-	case 'spin_up_disk':
-		$device = urldecode($_POST['device']);
-		echo json_encode(spin_disk(FALSE, $device));
-		break;
-
-	case 'chg_mountpoint':
-		$serial = urldecode($_POST['serial']);
-		$partition = urldecode($_POST['partition']);
-		$device	= urldecode($_POST['device']);
-		$fstype	= urldecode($_POST['fstype']);
-		$mountpoint	= basename(safe_name(urldecode($_POST['mountpoint']), FALSE));
-		echo json_encode(change_mountpoint($serial, $partition, $device, $fstype, $mountpoint));
-		break;
-
-	case 'chg_samba_mountpoint':
-		$device = urldecode($_POST['device']);
-		$mountpoint = basename(safe_name(basename(urldecode($_POST['mountpoint'])), FALSE));
-		echo json_encode(change_samba_mountpoint($device, $mountpoint));
-		break;
-
-	case 'chg_iso_mountpoint':
-		$device = urldecode($_POST['device']);
-		$mountpoint = basename(safe_name(basename(urldecode($_POST['mountpoint'])), FALSE));
-		echo json_encode(change_iso_mountpoint($device, $mountpoint));
-		break;
-		*/
 	}
 ?>

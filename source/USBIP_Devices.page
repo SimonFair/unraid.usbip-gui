@@ -1,5 +1,5 @@
 Menu="usbip:4"
-Title="Unassigned USB Devices"
+Title="USBIP Devices"
 Tag="unlink"
 ---
 <?php
@@ -22,7 +22,7 @@ $translations = file_exists("$docroot/webGui/include/Translations.php");
 require_once "$docroot/plugins/$plugin/include/Legacy.php";
 ?>
 <?if (! $translations):?>
-<?eval('?>'.parse_file("$docroot/plugins/$plugin/USB_Devices.page"))?>
+<?eval('?>'.parse_file("$docroot/plugins/$plugin/USBIP_Devices.page"))?>
 <?else:?>
 <?
 /* read translations */
@@ -30,6 +30,9 @@ parse_plugin('unraid.usbip-gui');
 
 require_once "plugins/$plugin/include/lib_usbip.php";
 $version = parse_ini_file("/etc/unraid-version");
+
+check_usbip_modules() ;
+#var_dump($loaded_usbip_host) ; var_dump($loaded_vhci_hcd) ; var_dump($usbip_cmds_exist ) ;
 
 ?>
 
@@ -293,13 +296,13 @@ $version = parse_ini_file("/etc/unraid-version");
 	function ping_poll(tabnum)
 	{
 		$.post(UDURL,{action:"update_ping"});
-		setTimeout(ping_poll, 15000, tabnum);
+		setTimeout(ping_poll, 60000, tabnum);
 	}
 
 	function refresh_page(tabnum)
 	{
 		$.post(UDURL,{action:"refresh_page"});
-		setTimeout(refresh_page, 3000, tabnum);
+		setTimeout(refresh_page, 60000, tabnum);
 	}
 
 	function detect_usb_disk_change(tabnum) {
@@ -329,7 +332,7 @@ $version = parse_ini_file("/etc/unraid-version");
 				}
 			},"json").always(function()
 			{
-				timers.usbdisks=setTimeout('detect_usb_disk_change('+tabnum+')',500);
+				timers.usbdisks=setTimeout('detect_usb_disk_change('+tabnum+')',500000);
 			});
 		} else {
 			clearTimeout(timers.usbdisks);
@@ -719,7 +722,7 @@ $version = parse_ini_file("/etc/unraid-version");
 	?>
 
 	var tab_usbdisks	= $('input[name$="tabs"]').length;
-	var UDURL		= '/plugins/<?=$plugin;?>/USB_Devices.php';
+	var UDURL		= '/plugins/<?=$plugin;?>/USBIP_Devices.php';
 	var diskinfo		= "";
 
 	if (typeof swal2 === "undefined")
@@ -731,7 +734,7 @@ $version = parse_ini_file("/etc/unraid-version");
 	$('#tab'+tab_usbdisks).bind({click:function() {pin_tab(tab_usbdisks); detect_usb_disk_change(tab_usbdisks);}});
 
 	/* Remove or hide diskio toggle */
-	tabElement = get_tab_title_by_name("<?=_('Unassigned USB Devices')?>");
+	tabElement = get_tab_title_by_name("<?=_('USBIP Devices')?>");
 	if (tabElement.prop("nodeName") == "DIV")
 	{
 		tabElement.addClass("disable_diskio");
@@ -810,15 +813,15 @@ $version = parse_ini_file("/etc/unraid-version");
 	{
 		/* Add icons to Tab/Title bar */
 		addButtonTab('<a title="<?=_("Unassigned Devices USB Settings");?>" href="/Settings/USBIP_Settings"><i class="fa fa-gear"></i></a>',
-								 "<?=_('Unassigned USB Devices');?>");
+								 "<?=_('USBIP Devices');?>");
 		addButtonTab('<a style="cursor:pointer;" onclick="$.post(\''+UDURL+'\',{\'action\':\'rescan_disks\'});" title="<?=_("Refresh Disks and Configuration");?>"><i class="fa fa-refresh"></i></a>',
-								 "<?=_('Unassigned USB Devices');?>");
+								 "<?=_('USBIP Devices');?>");
 		addButtonTab('<a style="cursor:pointer;" title="<?=_("Switch On to Show Ports");?>"><input type="checkbox" class="port-switch"></a>',
-								 "<?=_('Unassigned USB Devices');?>");
+								 "<?=_('USBIP Devices');?>");
 		addButtonTab('<a style="cursor:pointer;" title="<?=_("Switch On to Show SMB/NFS/ISO Shares");?>"><input type="checkbox" class="rmtip-switch"></a>',
-								 "<?=_('Unassigned USB Devices');?>");
+								 "<?=_('USBIP Devices');?>");
 		addButtonTab('<a style="cursor:pointer;" title="<?=_("Switch On to Show Disk Devices");?>"><input type="checkbox" class="disks-switch"></a>',
-								 "<?=_('Unassigned USB Devices');?>");
+								 "<?=_('USBIP Devices');?>");
 
 		/* Add switchButton to Tab/Title bar */
 		$('.disks-switch').switchButton({ labels_placement: "left", on_label: "<?=_('Local');?>", off_label: "<?=_('Local');?>", checked: $.cookie('USB-disks-view') != 'false'});
@@ -862,171 +865,6 @@ $version = parse_ini_file("/etc/unraid-version");
 </script>
 
 
-<div style="display:none;" data-survey-name="format_disk" data-survey-title="<?=_('Partition and Format Disk');?>">
-	<div data-question data-question-title="<?=_('Choose File System Format');?>">
-		<div data-question-format>
-			[surveyOption.type,surveyOption.device]
-		</div>
-		<div data-question-content>
-			<select name="FS" class="swal-content__input">
-				<option value="xfs">XFS</option>
-				<option value="btrfs">BTRFS</option>
-				<?if (version_compare($version['version'],"6.7.9", ">")):?>
-				<option value="xfs-encrypted">XFS - encrypted</option>
-				<option value="btrfs-encrypted">BTRFS - encrypted</option>
-				<?endif;?>
-				<option value="ntfs">NTFS</option>
-				<option value="exfat">exFAT</option>
-				<option value="fat32">FAT32</option>
-			</select>
-			<p><span style="font-weight:bold;"><?=_('Note');?>:</span> <?=_('An XFS or BTRFS disk partitioned in UD is compatible with the array disk partitioning and can be added to the array');?>.</p>
-		</div>
-		<div data-question-load></div>
-		<div data-question-done></div>
-	</div>
-
-	<div data-question data-question-title="<?=_('Password');?>">
-		<div data-question-condition>
-			surveyData['FS'] == 'xfs-encrypted' || surveyData['FS'] == 'btrfs-encrypted'
-		</div>
-		<div data-question-content>
-			<div class="swal-content">
-				<input type="password" class="swal-content__input" name="PASS" autocomplete="new-password" placeholder="<?=_('Password');?>">
-				<p><?=_('Enter the password to use for this disk');?>. <?=_('Leave blank to use the array password/passphrase');?>. <?=_('If using a disk password, be sure to enter the password for this disk in UD Settings so it can be mounted');?>.</p>
-				<p><span style="font-weight:bold;"><?=_('Note');?>:</span> <?=_('Remember your password');?>. <?=_('It cannot be recovered');?>!</p>
-			</div>
-		</div>
-	</div>
-
-	<div data-question data-question-title="" data-question-button-done=<?=_('Format');?> data-question-icon="warning">
-		<div data-question-format>
-			[surveyOption.type,surveyOption.device]
-		</div>
-		<div data-question-content>
-			<div class="swal-title"><?=_('Any data on this disk will be lost');?>!</div>
-			<div style="margin-bottom: 25px;font-size: 20px;"><?=_('Type');?> <span class="red">'<?=_('Yes');?>'</span> <?=_('to format');?>:</div>
-			<input type="text" name="confim-yes" class="swal-content__input" autocomplete="off" required >
-		</div>
-		<div data-question-load></div>
-		<div data-question-done>
-			(surveyData["confim-yes"] == "<?=_('Yes');?>")
-		</div>
-	</div>
-	<div data-survey-done data-survey-done-wait="true">
-		$("button[device='"+surveyOption.device+"']").prop('disabled',true);
-		$("button[device='"+surveyOption.device+"']").html("<i class='fa fa-circle-o-notch fa-spin'></i> <?=_('Formatting');?>");
-		$.post(UDURL,{action:"format_"+surveyOption.type,device:surveyOption.device, fs:surveyData["FS"], pass:surveyData["PASS"]}, function(data)
-		{
-			$("button[device='"+surveyOption.device+"']").prop('disabled',true);
-			$("button[device='"+surveyOption.device+"']").html( data.status ? "<?=_('Formated');?>" : "<?=_('Format failed');?>" );
-			swalShowResult(data.status);
-		},"json").fail(function(){swalShowResult(false);});
-	</div>
-	<div>
-		<script type="text/javascript">
-			$(function() {
-				window.format_disk = function(bt, type, device){doUnassignedDevicesSurvey("format_disk",{el:bt,type:type,device:device});}
-			});
-		</script>
-	</div>
-</div>
-
-<div style="display:none;" data-survey-name="remove_partiton" data-survey-title="">
-	<div data-question data-question-title="" data-question-button-done="<?=_('Remove');?>" data-question-icon="warning">
-		<div data-question-format>
-			[surveyOption.partition,surveyOption.device]
-		</div>
-		<div data-question-content>
-			<div class="swal-title"><?=_('Any data on this disk will be lost');?>!</div>
-			<div class="swal-title" style="font-size: 20px;"><?=_('Remove partition');?> <span class="red">{0}</span> <?=_('from disk');?> <span class="red">{1}</span></div>
-			<div style="margin-bottom: 25px;font-size: 20px;"><?=_('Type');?> <span class="red">'<?=_('Yes');?>'</span> <?=_('to confirm');?>:</div>
-				<input type="text" name="confim-yes" class="swal-content__input" autocomplete="off" required >
-		</div>
-		<div data-question-load></div>
-		<div data-question-done>
-			(surveyData["confim-yes"] == "<?=_('Yes');?>")
-		</div>
-	</div>
-	<div data-survey-done >
-		$("span[device='"+surveyOption.device+surveyOption.partition+"']").prop('disabled',true);
-		$("span[device='"+surveyOption.device+surveyOption.partition+"']").html("<i class='fa fa-circle-o-notch fa-spin'></i> <?=_('Removing');?>");
-		$.post(UDURL,{action:"rm_partition",device:surveyOption.device,partition:surveyOption.partition}).done(function(data)
-		{
-			swalShowResult((data == "true") ? true : false);
-		},"json").fail(function(){swalShowResult(false);});
-	</div>
-	<div>
-		<script type="text/javascript">
-			$(function() {
-				window.rm_partition = function(bt, device, partition){doUnassignedDevicesSurvey("remove_partiton",{el:bt,device:device,partition:partition});}
-			});
-		</script>
-	</div>
-</div>
-
-<div style="display:none;" data-survey-name="remove_iso_share" data-survey-title="<?=_('Remove ISO File mount');?>">
-	<div data-question data-question-title="" data-question-button-done="<?=_('Remove');?>" data-question-icon="warning">
-		<div data-question-format>
-			[surveyOption]
-		</div>
-		<div data-question-content>
-			<div class="swal-title" style="font-size: 20px;"><?=_('This will remove the ISO file share for');?>:</div>
-			<div style="margin-bottom: 15px;margin-top: 15px;">
-				<span style="font-weight: bold;">{0}</span>
-			</div>
-			<div class="swal-title" style="font-size: 20px;">
-				<span class="red" style="font-weight: bold;"><?=_('Are you sure');?>?</span>
-			</div>
-		</div>
-		<div data-question-load></div>
-		<div data-question-done></div>
-	</div>
-	<div data-survey-done>
-		$.post(UDURL,{action:"remove_iso_config",device:surveyOption}).done(function(data)
-		{
-			swalShowResult((data == "true") ? true : false);
-		},"json").fail(function(){swalShowResult(false);});
-	</div>
-	<div>
-		<script type="text/javascript">
-			$(function() {
-				window.remove_iso_config = function(i){doUnassignedDevicesSurvey("remove_iso_share",i);}
-		});
-	</script>
-	</div>
-</div>
-
-<div style="display:none;" data-survey-name="remove_disk_config" data-survey-title="<?=_('Remove Disk Config');?>">
-	<div data-question data-question-title="" data-question-button-done="<?=_('Remove');?>" data-question-icon="warning">
-		<div data-question-format>
-			[surveyOption]
-		</div>
-		<div data-question-content>
-			<div class="swal-title" style="font-size: 20px;"><?=_('This will remove the saved configuration of');?>:</div>
-			<div style="margin-bottom: 15px;margin-top: 15px;">
-				<span style="font-weight: bold;">{0}</span>
-			</div>
-			<div class="swal-title" style="font-size: 20px;">
-				<span class="red" style="font-weight: bold;"><?=_('Are you sure');?>?</span>
-			</div>
-		</div>
-		<div data-question-load></div>
-		<div data-question-done></div>
-	</div>
-	<div data-survey-done>
-		$.post(UDURL,{action:"remove_config",serial:surveyOption}).done(function(data)
-		{
-			swalShowResult((data == "true") ? true : false);
-		},"json").fail(function(){swalShowResult(false);});
-	</div>
-	<div>
-		<script type="text/javascript">
-			$(function(){
-				window.remove_disk_config = function(i){doUnassignedDevicesSurvey("remove_disk_config",i);}
-			});
-		</script>
-	</div>
-</div>
 
 <div style="display:none;" data-survey-name="remove_remote_host" data-survey-title="<?=_('Remove SMB/NFS mount');?>?">
 	<div data-question data-question-title="" data-question-button-done="<?=_('Remove');?>" data-question-icon="warning">
@@ -1036,6 +874,7 @@ $version = parse_ini_file("/etc/unraid-version");
 		<div data-question-content>
 			<div class="swal-title" style="font-size: 20px;"><?=_('This will remove the remote host');?>:</div>
 			<div style="margin-bottom: 15px;margin-top: 15px;">
+			<span style="font-weight:"><?=_('Note: This will remove host not indiviual port.');?></span><br />
 				<span style="font-weight: bold;">{0}</span>
 			</div>
 			<div class="swal-title" style="font-size: 20px;">
@@ -1048,6 +887,7 @@ $version = parse_ini_file("/etc/unraid-version");
 	<div data-survey-done>
 		$.post(UDURL,{action:"remove_remote_host_config",ip:surveyOption}).done(function(data)
 		{
+			usb_disks(tab_usbdisks);
 			swalShowResult((data == "true") ? true : false);
 		},"json").fail(function(){swalShowResult(false);});
 	</div>
@@ -1082,6 +922,7 @@ $version = parse_ini_file("/etc/unraid-version");
 		if ( opts.IP) {
 			$.post(UDURL,opts).done(function(data)
 			{
+				usb_disks(tab_usbdisks);
 				swalShowResult((data == "true") ? true : false);
 			},"json").fail(function(){swalShowResult(false);});
 		}
@@ -1095,88 +936,4 @@ $version = parse_ini_file("/etc/unraid-version");
 	</div>
 </div>	
 
-<div style="display:none;" data-survey-name="change_mountpoint" data-survey-title="">
-	<div data-question data-question-title="<?=_('Change Disk Mount Point');?>" data-question-button-done="<?=_('Change');?>">
-		<div data-question-format>
-			[surveyOption.mountpoint]
-		</div>
-		<div data-question-content>
-			<input type="text" class="swal-content__input" name="MOUNTPOINT" value={0} placeholder="<?=_('Mount Point');?>" required>
-			<p><?=_('Changing the Mount Point will also change the disk label');?>.</p>
-		</div>
-		<div data-question-load></div>
-		<div data-question-done>
-			(surveyData["MOUNTPOINT"].length)
-		</div>
-	</div>
-	<div data-survey-done data-survey-done-wait="true">
-		$.post(UDURL,{action:"chg_mountpoint",serial:surveyOption.serial,partition:surveyOption.partition,device:surveyOption.device,fstype:surveyOption.fstype,mountpoint:surveyData['MOUNTPOINT']}).done(function(data)
-		{
-			swalShowResult((data == "true") ? true : false);
-		},"json").fail(function(){swalShowResult(false);});
-	</div>
-	<div>
-		<script type="text/javascript">
-			$(function() {
-				window.chg_mountpoint = function(serial, partition, device, fstype, mountpoint){doUnassignedDevicesSurvey("change_mountpoint",{serial:serial,partition:partition,device:device,fstype:fstype,mountpoint:mountpoint});}
-			});
-		</script>
-	</div>
-</div>
-
-<div style="display:none;" data-survey-name="change_samba_mountpoint" data-survey-title="">
-	<div data-question data-question-title="<?=_('Change SMB/NFS Mount Point');?>" data-question-button-done="<?=_('Change');?>">
-		<div data-question-format>
-			[surveyOption.mountpoint]
-		</div>
-		<div data-question-content>
-			<input type="text" class="swal-content__input" name="MOUNTPOINT" value={0} placeholder="<?=_('Mount Point');?>" required>
-		</div>
-		<div data-question-load></div>
-		<div data-question-done>
-			(surveyData["MOUNTPOINT"].length)
-		</div>
-	</div>
-	<div data-survey-done data-survey-done-wait="true">
-		$.post(UDURL,{action:"chg_samba_mountpoint",device:surveyOption.device,mountpoint:surveyData['MOUNTPOINT']}).done(function(data)
-		{
-			swalShowResult((data == "true") ? true : false);
-		},"json").fail(function(){swalShowResult(false);});
-	</div>
-	<div>
-		<script type="text/javascript">
-			$(function() {
-				window.chg_samba_mountpoint = function(device, mountpoint){doUnassignedDevicesSurvey("change_samba_mountpoint",{device:device,mountpoint:mountpoint});}
-			});
-		</script>
-	</div>
-</div>
-
-<div style="display:none;" data-survey-name="change_iso_mountpoint" data-survey-title="">
-	<div data-question data-question-title="<?=_('Change ISO File Mount Point');?>" data-question-button-done="<?=_('Change');?>">
-		<div data-question-format>
-			[surveyOption.mountpoint]
-		</div>
-		<div data-question-content>
-			<input type="text" class="swal-content__input" name="MOUNTPOINT" value={0} placeholder="<?=_('Mount Point');?>" required>
-		</div>
-		<div data-question-load></div>
-		<div data-question-done>
-			(surveyData["MOUNTPOINT"].length)
-		</div>
-	</div>
-	<div data-survey-done data-survey-done-wait="true">
-		$.post(UDURL,{action:"chg_iso_mountpoint",device:surveyOption.device,mountpoint:surveyData['MOUNTPOINT']}).done(function(data)
-		{
-			swalShowResult((data == "true") ? true : false);
-		},"json").fail(function(){swalShowResult(false);});
-	</div>
-	<div>
-		<script type="text/javascript">
-			$(function() {
-				window.chg_iso_mountpoint = function(device, mountpoint){doUnassignedDevicesSurvey("change_iso_mountpoint",{device:device,mountpoint:mountpoint});}
-			});
-		</script>
-	</div>
-</div>
 <?endif;?>
