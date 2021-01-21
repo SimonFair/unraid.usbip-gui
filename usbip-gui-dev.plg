@@ -65,7 +65,7 @@ mkdir /usr/local/emhttp/plugins/&name; 2>/dev/null
 #find "&packages;/" -type f -iname "*.txz" -delete
 
 # Install the 'bundle'.
-installpgkg &packages;/&name;-&version;.txz 
+installpkg &packages;/&name;-&version;.txz 	
 
 # Adjust plugin permissions.
 chmod 755 -R /usr/local/emhttp/plugins/&name; 2>/dev/null
