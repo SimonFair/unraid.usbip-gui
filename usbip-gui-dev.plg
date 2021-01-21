@@ -9,7 +9,7 @@
 <!ENTITY pluginURL "&gitURL;/usbip-gui-dev.plg">
 <!ENTITY supportURL	"https://forums.unraid.net/">
 <!ENTITY packages	"/boot/config/plugins/&name;/packages">
-<!ENTITY MD5		"7b31da554b275fc7ffc9b6e4f6575bb9">
+<!ENTITY md5		"7b31da554b275fc7ffc9b6e4f6575bb9">
 ]>
 
 <PLUGIN name="&name;"
