@@ -13,33 +13,14 @@
 $plugin = "unraid.usbip-gui";
 /* $VERBOSE=TRUE; */
 
-$paths = [  "smb_extra"			=> "/tmp/{$plugin}/smb-settings.conf",
-			"smb_usb_shares"	=> "/etc/samba/unassigned-shares",
-			"usb_mountpoint"	=> "/mnt/disks",
-			"remote_mountpoint"	=> "/mnt/remotes",
-			"device_log"		=> "/tmp/{$plugin}/",
+$paths = [  "device_log"		=> "/tmp/{$plugin}/",
 			"config_file"		=> "/tmp/{$plugin}/config/{$plugin}.cfg",
-			"state"				=> "/var/state/{$plugin}/{$plugin}.ini",
-			"mounted"			=> "/var/state/{$plugin}/{$plugin}.json",
 			"hdd_temp"			=> "/var/state/{$plugin}/hdd_temp.json",
 			"run_status"		=> "/var/state/{$plugin}/run_status.json",
 			"ping_status"		=> "/var/state/{$plugin}/ping_status.json",
-			"df_status"			=> "/var/state/{$plugin}/df_status.json",
-			"dev_status"		=> "/var/state/{$plugin}/devs_status.json",
 			"hotplug_status"	=> "/var/state/{$plugin}/hotplug_status.json",
-			"dev_state"			=> "/usr/local/emhttp/state/devs.ini",
-			"samba_mount"		=> "/tmp/{$plugin}/config/samba_mount.cfg",
-			"iso_mount"			=> "/tmp/{$plugin}/config/iso_mount.cfg",
 			"remote_usbip"		=> "/tmp/{$plugin}/config/remote_usbip.cfg",
-			"reload"			=> "/var/state/{$plugin}/reload.state",
-			"unmounting"		=> "/var/state/{$plugin}/unmounting_%s.state",
-			"mounting"			=> "/var/state/{$plugin}/mounting_%s.state",
-			"formatting"		=> "/var/state/{$plugin}/formatting_%s.state",
-			"scripts"			=> "/tmp/{$plugin}/scripts/",
-			"credentials"		=> "/tmp/{$plugin}/credentials",
-			"authentication"	=> "/tmp/{$plugin}/authentication",
-			"luks_pass"			=> "/tmp/{$plugin}/luks_pass",
-			"script_run"		=> "/tmp/{$plugin}/script_run"
+
 		];
 
 $docroot = $docroot ?: @$_SERVER['DOCUMENT_ROOT'] ?: '/usr/local/emhttp';
@@ -129,7 +110,7 @@ function save_ini_file($file, $array) {
 	}
 }
 
-function unassigned_log($m, $type = "NOTICE") {
+function usbip_log($m, $type = "NOTICE") {
 	global $plugin;
 
 	if ($type == "DEBUG" && ! $GLOBALS["VERBOSE"]) return NULL;
@@ -317,7 +298,7 @@ function benchmark() {
 	$out      = call_user_func_array($function, $params);
 	$time    += microtime(true); 
 	$type     = ($time > 10) ? "INFO" : "DEBUG";
-	unassigned_log("benchmark: $function(".implode(",", $params).") took ".sprintf('%f', $time)."s.", $type);
+	usbip_log("benchmark: $function(".implode(",", $params).") took ".sprintf('%f', $time)."s.", $type);
 	return $out;
 }
 
@@ -326,10 +307,10 @@ function timed_exec($timeout=10, $cmd) {
 	$out		= shell_exec("/usr/bin/timeout ".$timeout." ".$cmd);
 	$time		+= microtime(true);
 	if ($time >= $timeout) {
-		unassigned_log("Error: shell_exec(".$cmd.") took longer than ".sprintf('%d', $timeout)."s!");
+		usbip_log("Error: shell_exec(".$cmd.") took longer than ".sprintf('%d', $timeout)."s!");
 		$out	= "command timed out";
 	} else {
-		unassigned_log("Timed Exec: shell_exec(".$cmd.") took ".sprintf('%f', $time)."s!", "DEBUG");
+		usbip_log("Timed Exec: shell_exec(".$cmd.") took ".sprintf('%f', $time)."s!", "DEBUG");
 	}
 	return $out;
 }
@@ -407,10 +388,10 @@ global $paths;
 		$common_script = $paths['scripts'].basename($common_cmd);
 		copy($common_cmd, $common_script);
 		@chmod($common_script, 0755);
-		unassigned_log("Running common script: '".basename($common_script)."'");
+		usbip_log("Running common script: '".basename($common_script)."'");
 		exec($common_script, $out, $return);
 		if ($return) {
-			unassigned_log("Error: common script failed with return '{$return}'");
+			usbip_log("Error: common script failed with return '{$return}'");
 		}
 	}
 
@@ -418,7 +399,7 @@ global $paths;
 		$command_script = $paths['scripts'].basename($cmd);
 		copy($cmd, $command_script);
 		@chmod($command_script, 0755);
-		unassigned_log("Running device script: '".basename($cmd)."' with action '{$action}'.");
+		usbip_log("Running device script: '".basename($cmd)."' with action '{$action}'.");
 
 		$script_running = is_script_running($cmd);
 		if ((! $script_running) || (($script_running) && ($action != "ADD"))) {
@@ -438,13 +419,13 @@ global $paths;
 				/* Run the script. */
 				exec($cmd, $out, $return);
 				if ($return) {
-					unassigned_log("Error: device script failed with return '{$return}'");
+					usbip_log("Error: device script failed with return '{$return}'");
 				}
 			} else {
 				return $command_script;
 			}
 		} else {
-			unassigned_log("Device script '".basename($cmd)."' aleady running!");
+			usbip_log("Device script '".basename($cmd)."' aleady running!");
 		}
 	}
 
@@ -456,12 +437,12 @@ function remove_config_disk($sn) {
 	$config_file = $GLOBALS["paths"]["config_file"];
 	$config = @parse_ini_file($config_file, true);
 	if ( isset($config[$source]) ) {
-		unassigned_log("Removing configuration '$source'.");
+		usbip_log("Removing configuration '$source'.");
 	}
 	$command = $config[$source]['command'];
 	if ( isset($command) && is_file($command) ) {
 		@unlink($command);
-		unassigned_log("Removing script '$command'.");
+		usbip_log("Removing script '$command'.");
 	}
 	unset($config[$sn]);
 	save_ini_file($config_file, $config);
@@ -477,7 +458,7 @@ function is_disk_ssd($device) {
 		if (is_file($file)) {
 			$rc = (@file_get_contents($file) == 0) ? TRUE : FALSE;
 		} else {
-			unassigned_log("Warning: Can't get rotational setting of '{$device}'.");
+			usbip_log("Warning: Can't get rotational setting of '{$device}'.");
 		}
 	} else {
 		$rc = TRUE;
@@ -512,7 +493,7 @@ function get_remote_usbip() {
 		$o = $remote_usbip  ;
 		
 	} else {
-		unassigned_log("Error: unable to get the remote usbip hosts.");
+		usbip_log("Error: unable to get the remote usbip hosts.");
 	}
 	return $o;
 }
@@ -530,7 +511,7 @@ function remove_config_remote_host($source) {
 	$config_file = $GLOBALS["paths"]["remote_usbip"];
 	$config = @parse_ini_file($config_file, true);
 	if ( isset($config[$source]) ) {
-		unassigned_log("Removing configuration '$source'.");
+		usbip_log("Removing configuration '$source'.");
 	}
 			
 	unset($config[$source]);
@@ -615,13 +596,13 @@ function get_unassigned_usb() {
 
 function get_all_usb_info($bus="all") {
 
-	unassigned_log("Starting get_all_disks_info.", "DEBUG");
+	usbip_log("Starting get_all_disks_info.", "DEBUG");
 	$time = -microtime(true);
 	$ud_disks = get_unassigned_usb();
 	if (!is_array($ud_disks)) {
 		$ud_disks = array();
 	}
-	unassigned_log("Total time: ".($time + microtime(true))."s!", "DEBUG");
+	usbip_log("Total time: ".($time + microtime(true))."s!", "DEBUG");
 /*	usort($ud_disks, create_function('$a, $b','$key="device";if ($a[$key] == $b[$key]) return 0; return ($a[$key] < $b[$key]) ? -1 : 1;')); */
 	return $ud_disks;
 }
@@ -635,12 +616,12 @@ function get_udev_info($device, $udev=NULL, $reload) {
 		save_ini_file($paths['state'], $state);
 		return $udev;
 	} else if (array_key_exists($device, $state) && (! $reload)) {
-		unassigned_log("Using udev cache for '$device'.", "DEBUG");
+		usbip_log("Using udev cache for '$device'.", "DEBUG");
 		return $state[$device];
 	} else {
 		$state[$device] = parse_ini_string(str_replace(array("$","!","\""), "", timed_exec(5,"/sbin/udevadm info --query=property --path $(/sbin/udevadm info -q path -n $device 2>/dev/null) 2>/dev/null")));
 		save_ini_file($paths['state'], $state);
-		unassigned_log("Not using udev cache for '$device'.", "DEBUG");
+		usbip_log("Not using udev cache for '$device'.", "DEBUG");
 		return $state[$device];
 	}
 }
@@ -715,7 +696,8 @@ function parse_usbip_remote($remote_host)
 		if 	   ($count>2) $remotes[$usbip_ip][$busid]["detail"][] = $line ;
 		$count=$count+1 ;
 	}
-	ksort($remotes) ;
+	#asort($remotes) ;
+	
 	return $remotes ;
 }
 ?>

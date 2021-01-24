@@ -6,7 +6,7 @@ if [ -z ${DOCROOT} ];then
 fi
 
 # Copy config files to ram file system.
-${DOCROOT}/plugins/unassigned.devices/scripts/copy_config.sh
+${DOCROOT}/plugins/unraid.usbip-gui/scripts/copy_config.sh
 
 logger "Mounting 'Auto Mount' Devices..." -t"unassigned.devices"
-${DOCROOT}/plugins/unassigned.devices/scripts/rc.unassigned mount autodevices
+${DOCROOT}/plugins/unraid.usbip-gui/scripts/rc.unraid,.usbip-gui mount autodevices

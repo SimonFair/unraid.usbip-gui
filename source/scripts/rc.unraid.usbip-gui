@@ -1,0 +1,79 @@
+#!/usr/bin/php
+<?php
+/* Copyright 2015, Guilherme Jardim
+ * Copyright 2016-2020, Dan Landon
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+
+$plugin = "unraid.usbip-gui";
+$docroot = $docroot ?: @$_SERVER['DOCUMENT_ROOT'] ?: '/usr/local/emhttp';
+require_once("$docroot/plugins/{$plugin}/include/usbip-lib.php");
+
+$COMMAND = $argv[1];
+if ($COMMAND != 'spindown') {
+	$DEVNAME = (isset($_ENV['DEVNAME'])) ? $_ENV['DEVNAME'] : ( isset($argv[2]) ? $argv[2] : NULL );
+	$DEVNAME = (file_exists($DEVNAME)) ? realpath($DEVNAME) : $DEVNAME;
+} else {
+	$DEVNAME = $argv[2];
+}
+$remove  = [];
+if (! $DEVNAME) die("Fail: device not defined.\n");
+
+
+
+function unassigned_reload() {
+	if (isset($_ENV['DEVLINKS'])) {
+		foreach (explode(" ", $_ENV['DEVLINKS']) as $link) {
+			get_udev_info($link, $_ENV, true);
+		}
+	}
+}
+
+
+function addFile($file)
+{
+	global $remove;
+
+	@touch($file);
+	$remove[] = $file;
+}
+
+switch ($COMMAND) {
+	case 'modules_load':
+		usbip_modules_load();
+		break;
+
+	case 'start_daemon':
+		usbipd_start();
+		break;
+
+	case 'start_daemon':
+		usbipd_stop();
+		break;
+
+	case 'reload':
+		usbip_reload();
+		break;
+
+	case 'refresh':
+		break;
+
+	default:
+		usbip_log("Error: 'rc.unraid.usbip-gui {$argv[1]} {$argv[2]}' not understood");
+		usbip_log("rc.unraid.usbip-gui usage: 'mount','umount','reload', 'spindown', 'refresh'");
+		exit(0);
+		break;
+}
+
+if ($COMMAND != 'spindown') {
+	if (! is_file($paths['reload'])) {
+		@touch($paths['reload']);
+	}
+}
+?>
