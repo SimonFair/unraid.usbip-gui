@@ -50,6 +50,34 @@ Get the plugin bundle.
 <MD5>&md5;</MD5>
 </FILE>
 
+<!--
+USBIP background start script.
+-->
+<FILE Name="/tmp/start_usbip" Mode="0770">
+<INLINE>
+#!/bin/bash
+# Copy configuration files to tmp file system.
+/usr/local/emhttp/plugins/&name;/scripts/copy_config.sh 2>/dev/null
+
+# Remove the background start script.
+rm -f /tmp/start_usbip 2>/dev/null
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/&name;/&name;.cfg">
+<INLINE>
+<![CDATA[
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/&name;/remote_hosts.cfg">
+<INLINE>
+<![CDATA[
+]]>
+</INLINE>
+</FILE>
+
 
 <!--
 The 'post-install' script.
@@ -68,6 +96,29 @@ installpkg &packages;/&name;-&version;.txz
 # Adjust plugin permissions.
 chmod 755 -R /usr/local/emhttp/plugins/&name; 2>/dev/null
 
+#Check if to load modules and start Daemon.
+
+# move the rules file
+mv /usr/local/emhttp/plugins/&name;/99_persistent_usbip.rules /etc/udev/rules.d/
+chmod 644 -R /etc/udev/rules.d/99_persistent_usbip.rules 2>/dev/null
+
+# Adjust plugin permissions.
+chmod 755 -R /usr/local/emhttp/plugins/&name; 2>/dev/null
+
+# Create a symlink to rm.
+ln -sf /bin/rm /usr/local/emhttp/plugins/&name;/scripts/
+
+# Fix permissions of executable files
+chmod +x /usr/local/emhttp/plugins/&name;/scripts/* /usr/local/emhttp/plugins/&name;/event/*
+
+# Create a symlink to usbip scripts.
+ln -sf /usr/local/emhttp/plugins/&name;/scripts/rc.unraid.usbip-gui /usr/local/sbin
+
+# mount disks
+at -M -f /tmp/start_usbip now 2>/dev/null
+
+# reload udev rules
+# udevadm control --reload-rules
 
 
 echo ""
