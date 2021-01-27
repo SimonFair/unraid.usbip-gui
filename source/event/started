@@ -5,7 +5,7 @@ if [ -z ${DOCROOT} ];then
 	DOCROOT="/usr/local/emhttp"
 fi
 
-logger "Mounting 'Auto Mount' Remote Shares..." -t"unassigned.devices"
+#logger "Mounting 'Auto Mount' Remote Shares..." -t"unassigned.devices"
 # Wait until network is ready
 timer=30
 while [ $timer -gt 0 ]; do
@@ -17,7 +17,7 @@ while [ $timer -gt 0 ]; do
 	sleep 1
 done
 if [ $timer -eq 0 ]; then
-	logger "Cannot 'Auto Mount' Remote Shares.  Network not available!" -t"unassigned.devices"
+	logger "Cannot Start USBIP if required" -t"unraid.usbip-gui"
 else
-	${DOCROOT}/plugins/unassigned.devices/scripts/rc.unassigned mount autoshares &
+	${DOCROOT}/plugins/unraid.usbip-gui/scripts/rc.unraid.usbip-gui check_config &
 fi

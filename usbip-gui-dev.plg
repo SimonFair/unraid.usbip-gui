@@ -3,13 +3,13 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unraid.usbip-gui">
 <!ENTITY author    "SimonFair">
-<!ENTITY version   "2021.01.24">
+<!ENTITY version   "2021.01.27">
 <!ENTITY launch    "main">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/SimonFair/unraid.usbip-gui/master">
 <!ENTITY pluginURL "&gitURL;/usbip-gui-dev.plg">
 <!ENTITY supportURL	"https://forums.unraid.net/">
 <!ENTITY packages	"/boot/config/plugins/&name;/packages">
-<!ENTITY md5		"7a6afe1ecee4a5d8bfc759996960fb79">
+<!ENTITY md5		"a4e38c5e68423f83677e8f6ad30381ff">
 ]>
 
 <PLUGIN name="&name;"
@@ -59,6 +59,12 @@ USBIP background start script.
 # Copy configuration files to tmp file system.
 /usr/local/emhttp/plugins/&name;/scripts/copy_config.sh 2>/dev/null
 
+#Start USBIPD if required.
+
+if [ ! -z "$(pidof emhttpd)" ]; then
+	/usr/local/emhttp/plugins/&name;/scripts/rc.&name; check_daemon 2>/dev/null
+fi
+
 # Remove the background start script.
 rm -f /tmp/start_usbip 2>/dev/null
 </INLINE>
@@ -71,7 +77,7 @@ rm -f /tmp/start_usbip 2>/dev/null
 </INLINE>
 </FILE>
 
-<FILE Name="/boot/config/plugins/&name;/remote_hosts.cfg">
+<FILE Name="/boot/config/plugins/&name;/remote_usbip.cfg">
 <INLINE>
 <![CDATA[
 ]]>
@@ -96,11 +102,9 @@ installpkg &packages;/&name;-&version;.txz
 # Adjust plugin permissions.
 chmod 755 -R /usr/local/emhttp/plugins/&name; 2>/dev/null
 
-#Check if to load modules and start Daemon.
-
 # move the rules file
-mv /usr/local/emhttp/plugins/&name;/99_persistent_usbip.rules /etc/udev/rules.d/
-chmod 644 -R /etc/udev/rules.d/99_persistent_usbip.rules 2>/dev/null
+#mv /usr/local/emhttp/plugins/&name;/99_persistent_usbip.rules /etc/udev/rules.d/
+#chmod 644 -R /etc/udev/rules.d/99_persistent_usbip.rules 2>/dev/null
 
 # Adjust plugin permissions.
 chmod 755 -R /usr/local/emhttp/plugins/&name; 2>/dev/null
@@ -114,12 +118,11 @@ chmod +x /usr/local/emhttp/plugins/&name;/scripts/* /usr/local/emhttp/plugins/&n
 # Create a symlink to usbip scripts.
 ln -sf /usr/local/emhttp/plugins/&name;/scripts/rc.unraid.usbip-gui /usr/local/sbin
 
-# mount disks
+# Copy Config to tmp and load modules.
 at -M -f /tmp/start_usbip now 2>/dev/null
 
 # reload udev rules
 # udevadm control --reload-rules
-
 
 echo ""
 echo "-----------------------------------------------------------"
@@ -142,20 +145,11 @@ The 'remove' script.
 # Remove installed packages
 find "&packages;/" -type f -iname "*.txz" -delete
 
-# Remove possible leftovers
-rm -rf /usr/local/emhttp/plugins/&name; \
-       \
-       &packages;
-
 rm -f /tmp/plugins/&name;.plg 
 rm -r /tmp/&name;
 
-
 # Remove all plugin files from emhttp.
 removepkg &packages;/&name;-&version;.txz 
-
-
-
 
 echo ""
 echo "-----------------------------------------------------------"

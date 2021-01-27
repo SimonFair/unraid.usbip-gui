@@ -1,23 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Containers>
 <Plugin>True</Plugin>
-<PluginURL>https://github.com/SimonFair/unraid.iSCSI/raw/main/iSCSI.plg</PluginURL>
+<PluginURL>https://raw.githubusercontent.com/SimonFair/unraid.usbip/master/usbip-gui.plg</PluginURL>
 <PluginAuthor>SimonFair</PluginAuthor>
 <Beta>True</Beta>
-<Category>Other:</Category>
-<Name>unraid.iSCSI</Name>
+<Category>Other: Drivers:</Category>
+<Name>Unraid USBip GUI</Name>
 <DonateText>If you wanna buy me a coffee.</DonateText>
 <DonateLink>https://paypal.me/SimonNFairweather?locale.x=en_GB</DonateLink>
 <DonateImage>https://www.paypalobjects.com/webstatic/en_US/btn/btn_donate_74x21.png</DonateImage>
 <Description>
-The iSCSI plugin allows you to view your iSCSI config and in time to update. Currently buttons do not functon.
+Provides GUI for USB over IP. USBIP commands are not included within this plugin at present so you need to install usbip plugin in addition
+to this plugin.
 
-Kernel needs to support iSCSI, see Kernel Helper by ich777
+The usbip-host kernel module is not currently available as part of unraid and not included within this plugin.
 </Description>
-<Support>https://forums.unraid.net/topic/98483-plugin-iscsi-gui/</Support>
-<Date>2020-10-28</Date>
+<Support>https://forums.unraid.net/topic/100511-plugin-usbip-commands/</Support>
+<Date>2021-01-30</Date>
 <Changes>
-Initial Release still WIP(Beta) Buttons don't function.
+Initial Beta Release.
 </Changes>
-<IconFA>cogs</IconFA>
+<IconFA>fa-usb</IconFA>
 </Containers>

@@ -8,5 +8,5 @@ fi
 # Copy config files to ram file system.
 ${DOCROOT}/plugins/unraid.usbip-gui/scripts/copy_config.sh
 
-logger "Mounting 'Auto Mount' Devices..." -t"unassigned.devices"
-${DOCROOT}/plugins/unraid.usbip-gui/scripts/rc.unraid,.usbip-gui mount autodevices
+#logger "Mounting 'Auto Mount' Devices..." -t"unassigned.devices"
+#${DOCROOT}/plugins/unraid.usbip-gui/scripts/rc.unraid,.usbip-gui mount autodevices

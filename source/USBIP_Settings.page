@@ -1,6 +1,6 @@
 Menu="Utilities"
 Title="USBIP Settings"
-Icon="unlock-alt"
+Icon="fa-usb"
 ---
 <?php
 /* 
@@ -29,27 +29,28 @@ require_once "plugins/$plugin/include/lib_usbip.php";
 $config_file = "/tmp/$plugin/config/$plugin.cfg";
 $cfg = is_file($config_file) ? @parse_ini_file($config_file, true) : array();
 $version = parse_ini_file("/etc/unraid-version");
+check_usbip_modules() ;
 
+if (!$usbip_cmds_exist || !$loaded_usbip_host || !$loaded_vhci_hcd) {
+	$notice="Following are missing or not loaded:" ;
+	if (!$usbip_cmds_exist) $notice.=" USBIP Commands" ;
+	if (!$loaded_usbip_host || !$exists_usbip_host) $notice.=" usbip_host module" ;
+	if (!$loaded_vhci_hcd || !$exists_vhci_hcd) $notice.=" vhci_hcd module" ;
+    echo "<p class='notice 	'>"._($notice).".</p>";
+   }
 
+   var_dump($exists_usbip_host) ;var_dump($exists_vhci_hcd) ;
 
 if (count($_POST)) {
 	if ($_POST['#apply'] == "_(Apply)_") {
-		array_map(function($k, $v) use (&$cfg) { if($k[0] != "#") $cfg["Config"][$k] = $v; }, array_keys($_POST), $_POST );
+		
 		save_ini_file($config_file, $cfg);
+		exec("plugins/{$plugin}/scripts/rc.unassigned check_config &>/dev/null", $out, $return);  
 	}	
 }
 
 $usbipd = file_exists("/usr/local/sbin/usbipd");
 
-if ((! file_exists("/usr/sbin/parted") && $cfg['Config']['destructive_mode'] == "enabled")) {
-	if (! $usbipd) {
-		$cfg['Config']['destructive_mode'] = "disabled";
-	}
-	save_ini_file($config_file, $cfg);
-}
-if (version_compare($version['version'],"6.8.9", ">")) {
-	$cfg["Config"]["spin_down"] = "yes";
-}
 ?>
 
 <script type="text/javascript" src="<?autov('/webGui/javascript/jquery.filetree.js')?>"></script>
@@ -81,10 +82,10 @@ if (version_compare($version['version'],"6.8.9", ">")) {
 
 
 _(Run USBIPD Daemon)_:
-: <select name="USBIPD" size="1" <?if (! $usbipd):?>disabled<?endif;?>>
+: <select name="USBIPD" size="1" <?if (! $usbipd || ! $loaded_usbip_host):?>disabled<?endif;?>>
   <?=mk_option($cfg["Config"]["USBIPD"], "disabled", "_(Disabled)_");?>
   <?=mk_option($cfg["Config"]["USBIPD"], "enabled", "_(Enabled)_");?>
-  </select><?if (! $usbipd):?>&nbsp;_(The usbipd command missing or usbip_host module not loaded.)_.<?endif;?>
+  </select><?if (! $usbipd || ! $loaded_usbip_host):?>&nbsp;_(The usbipd command missing or usbip_host module not loaded.)_.<?endif;?>
 
 :usbip_settings_destructive_plug:
 > If enabled, this will start usbip daemon.
@@ -99,21 +100,21 @@ _(Run USBIPD Daemon)_:
 <div id="title" class="nocontrol">_(Load Kernel Modules)_</div>
 <form markdown="1" name="usbip_host" method="POST">
 _(Load usbip_host)_?
-: <select name="usbip_host" size="1" onchange="prepareSecurity(this);">
+: <select name="usbip_host" size="1" <?if (! $exists_usbip_host):?>disabled<?endif;?>>
   <?=mk_option($cfg['Config']["usbip_host"], "no", "_(No)_");?>
   <?=mk_option($cfg['Config']["usbip_host"], "yes", "_(Yes)_");?>
 
-  </select>
+  </select><?if (! $exists_usbip_host):?>&nbsp;_(The usbip_host module does not exist.)_.<?endif;?>
 
 :ud_settings_symlinks_plug:
 > Set to **Yes** load usbip_host module.
 :end
 
 _(Load vhci_hcd)_?
-: <select name="vhci_hcd" size="1" onchange="prepareSecurity(this);">
+: <select name="vhci_hcd" size="1" <?if (! $exists_vhci_hcd):?>disabled<?endif;?>>
   <?=mk_option($cfg['Config']["vhci_hcd"], "no", "_(No)_");?>
   <?=mk_option($cfg['Config']["vhci_hcd"], "yes", "_(Yes)_");?>
-  </select>
+  </select><?if (! $exists_vhci_hcd):?>&nbsp;_(The vhci_hcd module does not exist.)_.<?endif;?>
 
 :ud_settings_symlinks_plug:
 > Set to **Yes** load vhci_hcd module.

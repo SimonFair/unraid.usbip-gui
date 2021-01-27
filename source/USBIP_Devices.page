@@ -1,12 +1,13 @@
 Menu="usbip:4"
 Title="USBIP Devices"
 Tag="unlink"
+Icon="cogs"
 ---
 <?php
 /* 
  * Copyright 2020 -	Simon Fairweather
  *
- *  Based on original code from  Guilherme Jardim and Dan Landon
+ *  Based on original code from Guilherme Jardim and Dan Landon
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License version 2,

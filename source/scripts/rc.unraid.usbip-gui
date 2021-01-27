@@ -13,21 +13,41 @@
 
 $plugin = "unraid.usbip-gui";
 $docroot = $docroot ?: @$_SERVER['DOCUMENT_ROOT'] ?: '/usr/local/emhttp';
-require_once("$docroot/plugins/{$plugin}/include/usbip-lib.php");
+require_once("$docroot/plugins/{$plugin}/include/lib_usbip.php");
 
 $COMMAND = $argv[1];
-if ($COMMAND != 'spindown') {
-	$DEVNAME = (isset($_ENV['DEVNAME'])) ? $_ENV['DEVNAME'] : ( isset($argv[2]) ? $argv[2] : NULL );
-	$DEVNAME = (file_exists($DEVNAME)) ? realpath($DEVNAME) : $DEVNAME;
-} else {
-	$DEVNAME = $argv[2];
+
+function usbip_modules_load() {
+	global $plugin, $config;
+	# Get Config file if load module is *YES process.
+
+	$config_file = "/tmp/$plugin/config/$plugin.cfg";
+	$cfg = is_file($config_file) ? @parse_ini_file($config_file, true) : array();
+	$config = $cfg["Config"];
+
+	
+	if ($config["usbip_host"] == "yes") {
+		usbip_log("info: Loading kernel module usbip_host");
+		exec("modprobe usbip-host") ;
+	}
+	if ($config["vhci_hcd"] == "yes") {
+		usbip_log("info: Loading kernel module vhci_hcd");
+		exec("modprobe vhci_hcd") ;
+	}
+
 }
-$remove  = [];
-if (! $DEVNAME) die("Fail: device not defined.\n");
 
+function usbipd_start() {
+	exec("usbipd -D --pid") ;
+	usbip_log("Start usbipd");	
+}
 
+function usbipd_stop() {
+	exec("killall usbipd") ;
+	usbip_log("Shutdown usbipd");	
+}
 
-function unassigned_reload() {
+function usbip_reload() {
 	if (isset($_ENV['DEVLINKS'])) {
 		foreach (explode(" ", $_ENV['DEVLINKS']) as $link) {
 			get_udev_info($link, $_ENV, true);
@@ -35,14 +55,16 @@ function unassigned_reload() {
 	}
 }
 
-
-function addFile($file)
-{
-	global $remove;
-
-	@touch($file);
-	$remove[] = $file;
+function usbip_check_config() {
+	usbip_modules_load() ;
+	if ($config["USBIPD"]=="enabled") {
+		usbipd_start() ;
+	} else {
+		usbipd_stop() ;
+	}		
 }
+
+
 
 switch ($COMMAND) {
 	case 'modules_load':
@@ -53,7 +75,7 @@ switch ($COMMAND) {
 		usbipd_start();
 		break;
 
-	case 'start_daemon':
+	case 'stop_daemon':
 		usbipd_stop();
 		break;
 
@@ -64,16 +86,14 @@ switch ($COMMAND) {
 	case 'refresh':
 		break;
 
+	case 'check_config':
+		usbip_check_config() ;
+		break;	
+
 	default:
 		usbip_log("Error: 'rc.unraid.usbip-gui {$argv[1]} {$argv[2]}' not understood");
-		usbip_log("rc.unraid.usbip-gui usage: 'mount','umount','reload', 'spindown', 'refresh'");
+		usbip_log("rc.unraid.usbip-gui usage: 'modules_load','start_daemon','stop_daemon', 'reload', 'refresh', 'check_config");
 		exit(0);
 		break;
-}
-
-if ($COMMAND != 'spindown') {
-	if (! is_file($paths['reload'])) {
-		@touch($paths['reload']);
-	}
 }
 ?>
