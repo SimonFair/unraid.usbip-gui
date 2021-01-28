@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Containers>
 <Plugin>True</Plugin>
-<PluginURL>https://raw.githubusercontent.com/SimonFair/unraid.usbip/master/usbip-gui.plg</PluginURL>
+<PluginURL>https://raw.githubusercontent.com/SimonFair/unraid.usbip-gui/master/usbip-gui.plg</PluginURL>
 <PluginAuthor>SimonFair</PluginAuthor>
 <Beta>True</Beta>
 <Category>Other: Drivers:</Category>
