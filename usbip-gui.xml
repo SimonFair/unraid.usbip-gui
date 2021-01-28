@@ -16,7 +16,7 @@ to this plugin.
 The usbip-host kernel module is not currently available as part of unraid and not included within this plugin.
 </Description>
 <Support>https://forums.unraid.net/topic/100511-plugin-usbip-commands/</Support>
-<Date>2021-01-30</Date>
+<Date>2021-01-28</Date>
 <Changes>
 Initial Beta Release.
 </Changes>
