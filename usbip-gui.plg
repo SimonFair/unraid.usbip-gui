@@ -1,15 +1,15 @@
 <?xml version='1.0' standalone='yes'?>
 
 <!DOCTYPE PLUGIN [
-<!ENTITY name      "unraid.iSCSI">
+<!ENTITY name      "unraid.usbip-gui">
 <!ENTITY author    "SimonFair">
-<!ENTITY version   "2020.11.15">
-<!ENTITY launch    "Tools/iSCSI">
-<!ENTITY gitURL    "https://raw.githubusercontent.com/SimonFair/unraid.iSCSI/main">
-<!ENTITY pluginURL "&gitURL;/iSCSIgui.plg">
+<!ENTITY version   "2021.01.28">
+<!ENTITY launch    "main">
+<!ENTITY gitURL    "https://raw.githubusercontent.com/SimonFair/unraid.usbip-gui/master">
+<!ENTITY pluginURL "&gitURL;/usbip-gui.plg">
 <!ENTITY supportURL	"https://forums.unraid.net/">
 <!ENTITY packages	"/boot/config/plugins/&name;/packages">
-<!ENTITY MD5		"d1ce06746a0110f557166e50f05f28bf">
+<!ENTITY md5		"001c187d1daf33d63052cacfac06be71">
 ]>
 
 <PLUGIN name="&name;"
@@ -18,15 +18,15 @@
 		version="&version;"
 		pluginURL="&pluginURL;"
 		support="&supportURL;"
-		icon="unlock-alt"
+		icon="fa-usb"
 		min="6.7.0">
 
 <CHANGES>
 ##&name;
 ###&version;
-28th Update
+28.01.2021
 
-- initial release.
+- initial beta release.
 </CHANGES>
 
 <!--
@@ -45,8 +45,43 @@ rm -f $(ls &packages;/*.tgz 2>/dev/null | grep -v '&version;')
 <!--
 Get the plugin bundle.
 -->
-<FILE Name="&packages;/&name;-&version;.tgz">
-<URL>"&gitURL;/&name;-&version;.tgz"</URL>
+<FILE Name="&packages;/&name;-&version;.txz">
+<URL>"&gitURL;/&name;-&version;.txz"</URL>
+<MD5>&md5;</MD5>
+</FILE>
+
+<!--
+USBIP background start script.
+-->
+<FILE Name="/tmp/start_usbip" Mode="0770">
+<INLINE>
+#!/bin/bash
+# Copy configuration files to tmp file system.
+/usr/local/emhttp/plugins/&name;/scripts/copy_config.sh 2>/dev/null
+
+#Start USBIPD if required.
+
+if [ ! -z "$(pidof emhttpd)" ]; then
+	/usr/local/emhttp/plugins/&name;/scripts/rc.&name; check_config 2>/dev/null
+fi
+
+# Remove the background start script.
+rm -f /tmp/start_usbip 2>/dev/null
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/&name;/&name;.cfg">
+<INLINE>
+<![CDATA[
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/&name;/remote_usbip.cfg">
+<INLINE>
+<![CDATA[
+]]>
+</INLINE>
 </FILE>
 
 
@@ -59,22 +94,35 @@ The 'post-install' script.
 # Create plugin directory
 mkdir /boot/config/plugins/&name; 2>/dev/null
 mkdir /usr/local/emhttp/plugins/&name; 2>/dev/null
-
-# Remove old packages
-find "&packages;/" -type f -iname "*.txz" -delete
+mkdir -p /tmp/&name;/config 2>/dev/null
 
 # Install the 'bundle'.
-tar -xf &packages;/&name;-&version;.tgz -C /usr/local/emhttp/plugins/&name; 2>/dev/null
+installpkg &packages;/&name;-&version;.txz 	
 
 # Adjust plugin permissions.
 chmod 755 -R /usr/local/emhttp/plugins/&name; 2>/dev/null
 
+# move the rules file
+#mv /usr/local/emhttp/plugins/&name;/99_persistent_usbip.rules /etc/udev/rules.d/
+#chmod 644 -R /etc/udev/rules.d/99_persistent_usbip.rules 2>/dev/null
 
-# Clean out old plugin packages
-find /boot/config/plugins/&name; -maxdepth 1 -type f -iname "*.t*z" -delete
-find &packages; -type f -iname "&name;*.txz" ! -iname "*&version;*" -delete
-find &packages; -type f -iname "&name;*.md5" ! -iname "*&version;*" -delete
+# Adjust plugin permissions.
+chmod 755 -R /usr/local/emhttp/plugins/&name; 2>/dev/null
 
+# Create a symlink to rm.
+ln -sf /bin/rm /usr/local/emhttp/plugins/&name;/scripts/
+
+# Fix permissions of executable files
+chmod +x /usr/local/emhttp/plugins/&name;/scripts/* /usr/local/emhttp/plugins/&name;/event/*
+
+# Create a symlink to usbip scripts.
+ln -sf /usr/local/emhttp/plugins/&name;/scripts/rc.unraid.usbip-gui /usr/local/sbin
+
+# Copy Config to tmp and load modules.
+at -M -f /tmp/start_usbip now 2>/dev/null
+
+# reload udev rules
+# udevadm control --reload-rules
 
 echo ""
 echo "-----------------------------------------------------------"
@@ -83,14 +131,6 @@ echo " "
 echo " Copyright 2016-2020, &author;"
 echo " Version: &version;"
 echo ""
-echo " Note:"
-echo " Install the Unassigned Devices Plus plugin if you need to"
-echo " mount exFAT or HFS+ file formats, or format disks."
-if [ $mounted_disks == "y" ]; then
-  echo ""
-  echo " PLEASE REBOOT YOUR SERVER "
-  echo ""
-fi
 echo "-----------------------------------------------------------"
 echo ""
 </INLINE>
@@ -105,20 +145,11 @@ The 'remove' script.
 # Remove installed packages
 find "&packages;/" -type f -iname "*.txz" -delete
 
-# Remove possible leftovers
-rm -rf /usr/local/emhttp/plugins/&name; \
-       \
-       &packages;
-
 rm -f /tmp/plugins/&name;.plg 
-
-
+rm -r /tmp/&name;
 
 # Remove all plugin files from emhttp.
-rm -rf /usr/local/emhttp/plugins/&name; 2>/dev/null
-
-
-
+removepkg &packages;/&name;-&version;.txz 
 
 echo ""
 echo "-----------------------------------------------------------"

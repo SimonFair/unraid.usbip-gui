@@ -47,14 +47,14 @@ check_usbip_modules() ;
 <script type="text/javascript" src="<?autov('/plugins/'.$plugin.'/assets/arrive.min.js')?>"></script>
 
 <style>
-	table.disk_mounts {padding: 0px 0px 0px 0px;border-collapse:collapse;white-space:nowrap;}
-	table.disk_mounts thead tr>td{text-align:left;width:8%;}
-	table.disk_mounts tr>td+td{text-align:left;}
-	table.disk_mounts tr>td+td+td{text-align:center;}
-	table.disk_mounts tr>td+td+td+td{text-align:right;}
-	table.disk_mounts tr>td+td+td+td+td+td+td{text-align:center;}
-	table.disk_mounts tr>td+td+td+td+td+td+td+td{text-align:right;}
-	table.disk_mounts tr>td+td+td+td+td+td+td+td+td+td+td+td{text-align:center;}
+	table.local_usb {padding: 0px 0px 0px 0px;border-collapse:collapse;white-space:nowrap;}
+	table.local_usb thead tr>td{text-align:left;width:8%;}
+	table.local_usb tr>td+td{text-align:left;}
+	table.local_usb tr>td+td+td{text-align:center;}
+	table.local_usb tr>td+td+td+td{text-align:right;}
+	table.local_usb tr>td+td+td+td+td+td+td{text-align:center;}
+	table.local_usb tr>td+td+td+td+td+td+td+td{text-align:right;}
+	table.local_usb tr>td+td+td+td+td+td+td+td+td+td+td+td{text-align:center;}
 
 	table.remote_ip {padding: 0px 0px 0px 0px;border-collapse:collapse;white-space:nowrap;}
 	table.remote_ip thead tr>td{text-align:left;width:8%;}
@@ -65,17 +65,10 @@ check_usbip_modules() ;
 	table.remote_ip tr>td+td+td+td+td+td+td+td{text-align:right;}
 	table.remote_ip tr>td+td+td+td+td+td+td+td+td+td+td+td{text-align:center;}
 
-	table.usb_absent {padding: 0px 0px 0px 0px;border-collapse:collapse;white-space:nowrap;}
-	table.usb_absent thead tr>td{text-align:left;width:8%;}
-	table.usb_absent tr>td+td{text-align:left;}
-	table.usb_absent tr>td+td+td+td{text-align:center;}
-
-	table.samba_mounts {padding: 0px 0px 0px 0px;border-collapse:collapse;white-space:nowrap;}
-	table.samba_mounts thead tr>td{text-align:left;width:8%;}
-	table.samba_mounts tr>td+td{text-align:left;}
-	table.samba_mounts tr>td+td+td+td{text-align:center;}
-	table.samba_mounts tr>td+td+td+td+td+td+td{text-align:right;}
-	table.samba_mounts tr>td+td+td+td+td+td+td+td+td+td+td+td+td{text-align:center}
+	table.usb_attached {padding: 0px 0px 0px 0px;border-collapse:collapse;white-space:nowrap;}
+	table.usb_attached thead tr>td{text-align:left;width:8%;}
+	table.usb_attached tr>td+td{text-align:left;}
+	table.usb_attached tr>td+td+td+td{text-align:center;}
 
 
 	button.mount {padding:2px 4px 3px 6px;margin:1px 0px 1px 0px;}
@@ -623,17 +616,17 @@ check_usbip_modules() ;
 <?=$Preclear ? $Preclear->html() : "";?>
 
 :usbip_devices_switches_plug:
-> Turn on the **Shares** switch to change the web page to show shares. Turn off the **Shares** switch to change the web page to hide shares.
+> Turn on the **Local** switch to change the web page to show local usb devices. Turn off the **Local** switch to change the web page to hide usb devices.
 >
-> Turn on the **Disks** switch to change the web page to show disk devices. Turn off the **Diskss** switch to change the web page to hide disk devices.
+> Turn on the **Remote** switch to change the web page to show remote usb devices. Turn off the **Remote** switch to change the web page to hide remote usb devices.
 >
-> Turn on the **Partitions** switch to show all disk device partitions. Turn off **Partitons** switch to switch back to not show disk device partitions.
+> Turn on the **History** switch to show all attached usb devices. Turn off **Partitons** switch to switch back to not show attached usb devices.
 >
-> Click on the <i style='color:black;font-weight:bold;' class="fa fa-refresh"></i> icon to rescan disks.
+> Click on the <i style='color:black;font-weight:bold;' class="fa fa-refresh"></i> icon to rescan usb devices.
 >
-> Click on the <i style='color:black;font-weight:bold;' class="fa fa-gear"></i> icon to go to the UD Settings.
+> Click on the <i style='color:black;font-weight:bold;' class="fa fa-gear"></i> icon to go to the USBIP Settings.
 >
-> You can spin a disk up or down by clicking on the disk ball indicator.  Applies to version 6.9 and later only.
+> 
 :end
 
 

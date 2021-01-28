@@ -147,33 +147,30 @@ switch ($_POST['action']) {
 
 		/* Disk devices */
 		$usbip = get_all_usb_info();
-		#var_dump($disks) ;
+	
 		echo "<div id='usbip_tab' class='show-disks'>";
 		#echo "<table class='disk_status wide disk_mounts'><thead><tr><td>"._('BusID')."</td><td>"._('Action')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('Reads')."</td><td>"._('Writes')."</td><td>"._('Settings')."</td><td>"._('FS')."</td><td>"._('Size')."</td><td>"._('Used')."</td><td>"._('Free')."</td><td>"._('Log')." idden</td></tr></thead>";
-		echo "<table class='disk_status wide disk_mounts'><thead><tr><td>"._('BusID')."</td><td>"._('Action')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td></tr></thead>";
+		echo "<table class='usb_status wide local_usb'><thead><tr><td>"._('BusID')."</td><td>"._('Action')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td></tr></thead>";
 
 		
 		echo "<tbody>";
 	
 		if ( count($usbip) ) {
 			foreach ($usbip as $disk => $detail) {
-				#echo "<tr class='toggle-disk'>";
+
 				$hdd_serial = "<a href=\"#\" title='"._("Disk Log Information")."' onclick=\"openBox('/webGui/scripts/disk_log&amp;arg1={$disk}','Disk Log Information',600,900,false);return false\"><i class='fa fa-hdd-o icon'></i></a>";
 				$hdd_serial .="<span title='"._("Click to view/hide partitions and mount points")."' class='exec toggle-hdd' hdd='{$disk}'></span>";
-				#$hdd_serial .="<span><i class='fa fa-minus-square fa-append grey-orb'></i></span>";
+
 				$detail["BUSID"] = $disk ;
 				$mbutton = make_mount_button($detail);		
-			#	echo "<tr class='toggle-disk'>";
-					/* Device serial number */
-			    echo "<td>{$hdd_serial}{$disk}</td>";
 				/* Device serial number */
-				#echo "<td>{$disk}</td>";
-				/* Mount button */
+			    echo "<td>{$hdd_serial}{$disk}</td>";
+				/* Bind button */
 				echo "<td class='mount'>{$mbutton}</td>";
-				/* Device driver */
+				/* Device Driver */
 				echo "<td>".$detail["SUBSYSTEM"]."/".$detail["DRIVER"]."</td>";
-					/* Device driver */
-					echo "<td>".$detail["ID_VENDOR"].":".$detail["ID_MODEL"] ;
+				/* Device Vendor */
+				echo "<td>".$detail["ID_VENDOR"].":".$detail["ID_MODEL"] ;
 
 		echo "</tr>";	
 			}
@@ -189,13 +186,13 @@ switch ($_POST['action']) {
 		
 		echo "<div class='show-rmtip' id='rmtip_tab'><div id='title'><span class='left'><img src='/plugins/$plugin/icons/nfs.png' class='icon'>"._('Remote USBIP Hosts')." &nbsp;</span></div>";
 		#echo "<table class='disk_status wide remote_ip'><thead><tr><td>"._('Remote host')."</td><td>"._('Busid')."</td><td>"._('Action')."</td><td>"._('Vendor:Product(Additional Details)')."</td><td></td><td>"._('Remove')."</td><td>"._('Settings')."</td><td></td><td></td><td>"._('Size')."</td><td>"._('Used')."</td><td>"._('Free')."</td><td>"._('Log')."</td></tr></thead>";
-		echo "<table class='disk_status wide remote_ip'><thead><tr><td>"._('Remote host')."</td><td>"._('Busid')."</td><td>"._('Action')."</td><td>"._('Vendor:Product(Additional Details)')."</td><td></td><td>"._('Remove')."</td><td>"._('')."</td><td></td><td></td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td></tr></thead>";
+		echo "<table class='remote_hosts wide remote_ip'><thead><tr><td>"._('Remote host')."</td><td>"._('Busid')."</td><td>"._('Action')."</td><td>"._('Vendor:Product(Additional Details)')."</td><td></td><td>"._('Remove')."</td><td>"._('')."</td><td></td><td></td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td><td>"._('')."</td></tr></thead>";
 		echo "<tbody>";
 		$ds1 = time();
 		$remote_usbip = get_remote_usbip();
 		ksort($remote_usbip) ;
 		$ii=1 ;
-		#var_dump($remote_usbip) ;
+
 		usbip_log("get_remote_usbip: ".($ds1 - microtime(true))."s!","DEBUG");
 		if (count($remote_usbip)) {
 			foreach ($remote_usbip as $key => $remote)
@@ -224,32 +221,25 @@ switch ($_POST['action']) {
 			
 				echo "<class='attach'>{$abutton}   ";
 				echo "<td><span title='"._("Click to view/hide additional Remote details")."' class='exec toggle-rmtip' hostport='{$hostport}'><i class='fa fa-plus-square fa-append'></i></span>".$busiddetail["vendor"].$busiddetail["product"]."</td><td>" ;
-				#var_dump($busiddetail) ;
+
 				$detail_lines=$busiddetail["detail"] ;
 				echo "</td><td title='"._("Remove Remote Host configuration")."'><a style='color:#CC0000;font-weight:bold;cursor:pointer;' onclick='remove_remote_host_config(\"{$key}\")'><i class='fa fa-remove hdd'></a></td></tr>" ;
 
 		
-			foreach($detail_lines as $line)
-			{
-				
-				
-				$style = "style='display:none;' " ;
-				#$style = "" ;
-				#<tr class='toggle-parts toggle-".basename($disk['device'])."' name='toggle-".basename($disk['device'])."' $style>"
-				echo "<tr class='toggle-parts toggle-rmtip-".$hostport."' name='toggle-rmtip-".$hostport."'".$style.">";
-				echo "<td></td><td></td><td></td><td>&nbsp&nbsp&nbsp&nbsp&nbsp".htmlspecialchars($line)."</td></tr>" ;
-			
+					foreach($detail_lines as $line)
+						{
+						$style = "style='display:none;' " ;
 
-				
-				
-			}
+						echo "<tr class='toggle-parts toggle-rmtip-".$hostport."' name='toggle-rmtip-".$hostport."'".$style.">";
+						echo "<td></td><td></td><td></td><td>&nbsp&nbsp&nbsp&nbsp&nbsp".htmlspecialchars($line)."</td></tr>" ;				
+					}
 		
-			$ii++ ;
+				$ii++ ;
 				echo "</tr>";
 				}
 			}
-			}
 		}
+	}
 
 
 		if (! count($remote_usbip)) {
@@ -265,10 +255,9 @@ switch ($_POST['action']) {
 		echo "<div id='port_tab' class='show-ports'>";
 		$ct = "";
 		$port=parse_usbip_port() ;
-		#echo "<tr class='toggle-ports'>";
-		#var_dump($port) ;
+	
 		echo "<div class='show-ports' id='ports_tab'><div id='title'><span class='left'><img src='/plugins/{$plugin}/icons/historical.png' class='icon'>"._('Attached Ports')."</span></div>";
-		echo "<table class='disk_status wide usb_absent'><thead><tr><td>"._('Device')."</td><td>"._('HUB Port=>Remote host')."</td><td>"._('Action')."</td><td></td><td></td><td></td><td></td><td></td><td>"._('')."</td><td>"._('')."</td></tr></thead>" ;
+		echo "<table class='usb_attach wide usb_attached'><thead><tr><td>"._('Device')."</td><td>"._('HUB Port=>Remote host')."</td><td>"._('Action')."</td><td></td><td></td><td></td><td></td><td></td><td>"._('')."</td><td>"._('')."</td></tr></thead>" ;
 
 		foreach ($port as $portkey => $portline) {
 			$dbutton = make_detach_button($portkey);
@@ -315,67 +304,11 @@ switch ($_POST['action']) {
  		usbip_log("Total render time: ".($time + microtime(true))."s", "DEBUG");
 		break;
 
-/*	case 'detect':
-		global $paths;
-
-
-		/* Check to see if disk status has changed. */
-/*		$status = array();
-		$tc = $paths['dev_status'];
-		$previous = is_file($tc) ? json_decode(file_get_contents($tc),TRUE) : array();
-		$sf	= $paths['dev_state'];
-		if (is_file($sf)) {
-			$devs = parse_ini_file($sf, true);
-			foreach ($devs as $d) {
-				$name = $d['name'];
-				$status[$name]['running'] = $d['spundown'] == '0' ? "yes" : "no";
-				$curr = $status[$name]['running'];
-				$prev = $previous[$name]['running'];
-				if (! is_file($GLOBALS['paths']['reload']) && ($curr != $prev)) {
-					@touch($GLOBALS['paths']['reload']);
-				}
-			}
-		#	file_put_contents($tc, json_encode($status));
-		}
-
-		echo json_encode(array("reload" => is_file($paths['reload']), "diskinfo" => 0));
-		break;
-*/
 	case 'refresh_page':
 		if (! is_file($GLOBALS['paths']['reload'])) {
 			@touch($GLOBALS['paths']['reload']);
 		}
 		break;
-/*
-	case 'remove_hook':
-		@unlink($paths['reload']);
-		break;
-
-	case 'update_ping':
-		global $paths;
-
-		/* Refresh the ping status in the background. */
-/*		$config_file = $paths['samba_mount'];
-		$samba_mounts = @parse_ini_file($config_file, true);
-		if (is_array($samba_mounts)) {
-			foreach ($samba_mounts as $device => $mount) {
-				$tc = $paths['ping_status'];
-				$ping_status = is_file($tc) ? json_decode(file_get_contents($tc),TRUE) : array();
-				$server = $mount['ip'];
-				$changed = ($ping_status[$server]['changed'] == 'yes') ? TRUE : FALSE;
-				$mounted = is_mounted($device);
-				is_samba_server_online($server, $mounted);
-				if (! is_file($GLOBALS['paths']['reload']) && ($changed)) {
-					$no_pings = $ping_status[$server]['no_pings'];
-					$online = $ping_status[$server]['online'];
-					$ping_status[$server] = array('timestamp' => time(), 'no_pings' => $no_pings, 'online' => $online, 'changed' => 'no');
-					file_put_contents($tc, json_encode($ping_status));
-					@touch($GLOBALS['paths']['reload']);
-				}
-			}
-		}
-		break;
-*/
 
 	case 'bind':
 		$device = urldecode($_POST['device']);
@@ -407,8 +340,6 @@ switch ($_POST['action']) {
 		exec($cmd_usbip_attach, $out, $return);
 		echo json_encode(["status" => $return ? false : true ]);
 		break;	
-
-
 
 	case 'rescan_disks':
 		exec("plugins/{$plugin}/scripts/copy_config.sh");

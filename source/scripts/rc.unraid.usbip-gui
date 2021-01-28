@@ -38,13 +38,17 @@ function usbip_modules_load() {
 }
 
 function usbipd_start() {
-	exec("usbipd -D --pid") ;
-	usbip_log("Start usbipd");	
+	$pid=shell_exec("pgrep usbipd") ;
+	if ($pid!="") return ;
+	usbip_log("Start usbipd");
+	exec("usbipd -D --pid") ;	
 }
 
 function usbipd_stop() {
-	exec("killall usbipd") ;
+	$pid=shell_exec("pgrep usbipd") ;
+	if ($pid==NULL) return ;
 	usbip_log("Shutdown usbipd");	
+	exec("killall usbipd") ;
 }
 
 function usbip_reload() {
@@ -56,7 +60,9 @@ function usbip_reload() {
 }
 
 function usbip_check_config() {
+	global $config ;
 	usbip_modules_load() ;
+	$pid=shell_exec("pgrep -c  usbipd") ;
 	if ($config["USBIPD"]=="enabled") {
 		usbipd_start() ;
 	} else {

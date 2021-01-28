@@ -39,13 +39,15 @@ if (!$usbip_cmds_exist || !$loaded_usbip_host || !$loaded_vhci_hcd) {
     echo "<p class='notice 	'>"._($notice).".</p>";
    }
 
-   var_dump($exists_usbip_host) ;var_dump($exists_vhci_hcd) ;
 
 if (count($_POST)) {
 	if ($_POST['#apply'] == "_(Apply)_") {
-		
+		usbip_log("Updating usbip settings...");
+		array_map(function($k, $v) use (&$cfg) { if($k[0] != "#") $cfg["Config"][$k] = $v; }, array_keys($_POST), $_POST );
 		save_ini_file($config_file, $cfg);
-		exec("plugins/{$plugin}/scripts/rc.unassigned check_config &>/dev/null", $out, $return);  
+		exec("plugins/{$plugin}/scripts/rc.unraid.usbip-gui check_config &>/dev/null", $out, $return);  
+		usbip_log("usbip settings updated.");
+		check_usbip_modules() ;
 	}	
 }
 
@@ -89,6 +91,7 @@ _(Run USBIPD Daemon)_:
 
 :usbip_settings_destructive_plug:
 > If enabled, this will start usbip daemon.
+> Disable will stop if running and not start at boot.
 :end
 
 
@@ -107,7 +110,7 @@ _(Load usbip_host)_?
   </select><?if (! $exists_usbip_host):?>&nbsp;_(The usbip_host module does not exist.)_.<?endif;?>
 
 :ud_settings_symlinks_plug:
-> Set to **Yes** load usbip_host module.
+> Set to **Yes** load usbip_host module. **No** will not unload the module. But will not load on start or reboot.
 :end
 
 _(Load vhci_hcd)_?
@@ -117,7 +120,7 @@ _(Load vhci_hcd)_?
   </select><?if (! $exists_vhci_hcd):?>&nbsp;_(The vhci_hcd module does not exist.)_.<?endif;?>
 
 :ud_settings_symlinks_plug:
-> Set to **Yes** load vhci_hcd module.
+> Set to **Yes** load vhci_hcd module. **No** will not unload module. But will not load on start or reboot.
 :end
 
 

@@ -9,7 +9,7 @@
 <!ENTITY pluginURL "&gitURL;/usbip-gui-dev.plg">
 <!ENTITY supportURL	"https://forums.unraid.net/">
 <!ENTITY packages	"/boot/config/plugins/&name;/packages">
-<!ENTITY md5		"a4e38c5e68423f83677e8f6ad30381ff">
+<!ENTITY md5		"1231f41183c0886af1c623c18905a8ff">
 ]>
 
 <PLUGIN name="&name;"
@@ -18,7 +18,7 @@
 		version="&version;"
 		pluginURL="&pluginURL;"
 		support="&supportURL;"
-		icon="unlock-alt"
+		icon="fa-usb"
 		min="6.7.0">
 
 <CHANGES>
@@ -62,7 +62,7 @@ USBIP background start script.
 #Start USBIPD if required.
 
 if [ ! -z "$(pidof emhttpd)" ]; then
-	/usr/local/emhttp/plugins/&name;/scripts/rc.&name; check_daemon 2>/dev/null
+	/usr/local/emhttp/plugins/&name;/scripts/rc.&name; check_config 2>/dev/null
 fi
 
 # Remove the background start script.
