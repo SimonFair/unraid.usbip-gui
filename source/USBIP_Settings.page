@@ -51,7 +51,8 @@ if (count($_POST)) {
 	}	
 }
 
-$usbipd = file_exists("/usr/local/sbin/usbipd");
+$usbipd = file_exists("/usr/sbin/usbipd");
+$usbipd2 = file_exists("/usr/local/sbin/usbipd");
 
 ?>
 
@@ -84,10 +85,10 @@ $usbipd = file_exists("/usr/local/sbin/usbipd");
 
 
 _(Run USBIPD Daemon)_:
-: <select name="USBIPD" size="1" <?if (! $usbipd || ! $loaded_usbip_host):?>disabled<?endif;?>>
+: <select name="USBIPD" size="1" <?if ((! $usbipd && ! $usbipd2) ||  ! $loaded_usbip_host):?>disabled<?endif;?>>
   <?=mk_option($cfg["Config"]["USBIPD"], "disabled", "_(Disabled)_");?>
   <?=mk_option($cfg["Config"]["USBIPD"], "enabled", "_(Enabled)_");?>
-  </select><?if (! $usbipd || ! $loaded_usbip_host):?>&nbsp;_(The usbipd command missing or usbip_host module not loaded.)_.<?endif;?>
+  </select><?if ((! $usbipd && ! $usbipd2) || ! $loaded_usbip_host):?>&nbsp;_(The usbipd command missing or usbip_host module not loaded.)_.<?endif;?>
 
 :usbip_settings_destructive_plug:
 > If enabled, this will start usbip daemon.

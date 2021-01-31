@@ -2,7 +2,7 @@
 
 Copyright (C) 2021 Simon Fairweather
 
-Base source taken from Unassisgned Plugin provided by Guilherme Jardim and Dan Landon
+Base source taken from Unassigned Plugin provided by Guilherme Jardim and Dan Landon
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

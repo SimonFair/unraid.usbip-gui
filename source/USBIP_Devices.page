@@ -51,7 +51,7 @@ check_usbip_modules() ;
 	table.local_usb thead tr>td{text-align:left;width:8%;}
 	table.local_usb tr>td+td{text-align:left;}
 	table.local_usb tr>td+td+td{text-align:center;}
-	table.local_usb tr>td+td+td+td{text-align:right;}
+	table.local_usb tr>td+td+td+td{text-align:left;}
 	table.local_usb tr>td+td+td+td+td+td+td{text-align:center;}
 	table.local_usb tr>td+td+td+td+td+td+td+td{text-align:right;}
 	table.local_usb tr>td+td+td+td+td+td+td+td+td+td+td+td{text-align:center;}
@@ -113,15 +113,6 @@ check_usbip_modules() ;
 		$.post(UDURL,{action:"rm_preclear",device:dev}).always(function(){usb_disks(tab_usbdisks)});
 	}
 
-	function spin_down_disk(dev) {
-		document.getElementById('disk_orb-'+dev).className = "fa fa-refresh fa-spin orb grey-orb";
-		$.post(UDURL,{action:"spin_down_disk",device:dev});
-	}
-
-	function spin_up_disk(dev) {
-		document.getElementById('disk_orb-'+dev).className = "fa fa-refresh fa-spin orb grey-orb ";
-		$.post(UDURL,{action:"spin_up_disk",device:dev});
-	}
 
 	if (typeof " ".formatUnicorn !== "function")
 	{
@@ -188,13 +179,6 @@ check_usbip_modules() ;
 		}
 	}(jQuery));
 
-	function openWindow_fsck(cmd,title,height,width) {
-		var run = cmd;
-		var top = (screen.height-height)/2;
-		var left = (screen.width-width)/2;
-		var options = 'resizeable=yes,scrollbars=yes,height='+height+',width='+width+',top='+top+',left='+left;
-		window.open(run, 'log', options);
-	}
 
 	function usbip_op(el, op, device) {
 		/* add spinning and disable button */
