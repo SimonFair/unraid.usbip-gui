@@ -19,7 +19,7 @@
 		pluginURL="&pluginURL;"
 		support="&supportURL;"
 		icon="fa-usb"
-		min="6.9.0-rc2">
+		min="6.7.0-rc2">
 
 <CHANGES>
 ##&name;
