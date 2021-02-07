@@ -3,13 +3,13 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unraid.usbip-gui">
 <!ENTITY author    "SimonFair">
-<!ENTITY version   "2021.02.06">
+<!ENTITY version   "2021.02.07">
 <!ENTITY launch    "main">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/SimonFair/unraid.usbip-gui/master">
 <!ENTITY pluginURL "&gitURL;/usbip-gui-dev.plg">
 <!ENTITY supportURL	"https://forums.unraid.net/">
 <!ENTITY packages	"/boot/config/plugins/&name;/packages">
-<!ENTITY md5		"c0c97cdc96960f30abb8414bce2aa809">
+<!ENTITY md5		"54c27b80d8c715c30d611aba1274d35e">
 ]>
 
 <PLUGIN name="&name;"
@@ -91,6 +91,13 @@ rm -f /tmp/start_usbip 2>/dev/null
 </FILE>
 
 <FILE Name="/boot/config/plugins/&name;/remote_usbip.cfg">
+<INLINE>
+<![CDATA[
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/&name;/vm_mappings.cfg">
 <INLINE>
 <![CDATA[
 ]]>
