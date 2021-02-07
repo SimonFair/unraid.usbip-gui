@@ -3,13 +3,13 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unraid.usbip-gui">
 <!ENTITY author    "SimonFair">
-<!ENTITY version   "2021.01.31">
-<!ENTITY launch    "main">
+<!ENTITY version   "2021.02.07">
+<!ENTITY launch    "usbip">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/SimonFair/unraid.usbip-gui/master">
 <!ENTITY pluginURL "&gitURL;/usbip-gui.plg">
 <!ENTITY supportURL	"https://forums.unraid.net/topic/100511-plugin-usbip-commands/">
 <!ENTITY packages	"/boot/config/plugins/&name;/packages">
-<!ENTITY md5		"faa7bb5bb3a8c854e5b2885c31521ba4">
+<!ENTITY md5		"4a0810387999d5588c93163360a6d80e">
 ]>
 
 <PLUGIN name="&name;"
@@ -19,14 +19,34 @@
 		pluginURL="&pluginURL;"
 		support="&supportURL;"
 		icon="fa-usb"
-		min="6.7.0">
+		min="6.9.0-rc2">
 
 <CHANGES>
 ##&name;
 ###&version;
-Revised Load process and addition of loading usbip package from ich777.
 
-USBIP package includes all commands and modules required for USBIP
+- Add: VM Mapping functions
+- Add: Display USBIP function messages if not used. Enable/Disable for USBIP added to settings. Defaults to disable, change to enable if you are upgrading.
+- Add: Historical Devices added, list includes current devices also which can be removed whilst inuse.
+- Add: Failure Message for virsh errors.
+
+Note,
+
+Existing Libvirt plugin cannot be used to connect devices.
+
+
+Development yet to be completed.
+
+Autoconnect function. udev Rules exist and process works, but there are timing issues to be resolved.
+Add checks before historical info can be removed.
+Rename Plugin to USB Manager
+VM Start/Stop process.
+Changes to USB device list not to be depentant on usbip. Once change version pre-6.9.0-rc2 will be available.
+
+31.01.2021
+
+- Add: Revised Load process and addition of loading usbip package from ich777.
+  USBIP package includes all commands and modules required for USBIP
 
 28.01.2021
 
@@ -97,6 +117,14 @@ rm -f /tmp/start_usbip 2>/dev/null
 </INLINE>
 </FILE>
 
+<FILE Name="/boot/config/plugins/&name;/vm_mappings.cfg">
+<INLINE>
+<![CDATA[
+]]>
+</INLINE>
+</FILE>
+
+
 
 <!--
 The 'post-install' script.
@@ -153,7 +181,7 @@ depmod -a > /dev/null
 
 check_usbip_repo() {
 #Check if usbip is already downloaded
-check
+
 if [ ! -z "$(modinfo usbip_host)" ]; then
     echo "--------------------------usbip already installed...!--------------------------"
 else

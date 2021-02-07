@@ -1,4 +1,4 @@
-Menu="usbip:4"
+Menu="USB:4"
 Title="USBIP Devices"
 Tag="unlink"
 Icon="cogs"
@@ -50,10 +50,11 @@ check_usbip_modules() ;
 	table.local_usb {padding: 0px 0px 0px 0px;border-collapse:collapse;white-space:nowrap;}
 	table.local_usb thead tr>td{text-align:left;width:8%;}
 	table.local_usb tr>td+td{text-align:left;}
-	table.local_usb tr>td+td+td{text-align:center;}
+	table.local_usb tr>td+td+td{text-align:left;}
 	table.local_usb tr>td+td+td+td{text-align:left;}
 	table.local_usb tr>td+td+td+td+td+td+td{text-align:center;}
-	table.local_usb tr>td+td+td+td+td+td+td+td{text-align:right;}
+	table.local_usb tr>td+td+td+td+td+td+td+td{text-align:centre;}
+	table.local_usb tr>td+td+td+td+td+td+td+td+td{text-align:left;}
 	table.local_usb tr>td+td+td+td+td+td+td+td+td+td+td+td{text-align:center;}
 
 	table.remote_ip {padding: 0px 0px 0px 0px;border-collapse:collapse;white-space:nowrap;}
@@ -230,6 +231,24 @@ check_usbip_modules() ;
 		});
 	}
 
+	
+	function usbip_vm_connect(el, op, device) {
+		/* add spinning and disable button */
+
+		
+		$("button[vm='"+device+"']").html("<i class='fa fa-circle-o-notch fa-spin'></i> "+(op == "vm_connect" ? "<?=_('Connecting');?>" : "<?=_('Removing');?>"));
+		$("button[vm='"+device+"']").prop("disabled","true"); 
+        
+		$.post(UDURL,{'action':op, 'vm_connect':"attach", 'vm':device}).done(function(data)
+		{
+
+		 $("button[vm='"+device+"']").html(" "+(op == "vm_detach" ? "<?=_('VM Detact');?>" : "<?=_('VM Attach');?>"));
+		
+		usb_disks(tab_usbdisks) ;
+		});
+	}
+
+
 	function pin_tab(n) {
 		$.removeCookie('one',{path:'/'});
 		$.cookie('tab','tab'+n,{path:'/'});
@@ -280,7 +299,8 @@ check_usbip_modules() ;
 	function refresh_page(tabnum)
 	{
 		$.post(UDURL,{action:"refresh_page"});
-		setTimeout(refresh_page, 60000, tabnum);
+		usb_disks(tab_usbdisks);
+		setTimeout(refresh_page, 5000, tabnum);
 	}
 
 	function detect_usb_disk_change(tabnum) {
@@ -733,6 +753,14 @@ check_usbip_modules() ;
 		{
 			usbip_detach(this, $(this).attr("role"), $(this).attr("port"));
 		});
+			tr.find( "button[role$=vm_connect]" ).on( "click", function()
+		{
+			usbip_vm_connect(this, $(this).attr("role"), $(this).attr("vm"));
+		});
+					tr.find( "button[role$=vm_disconnect]" ).on( "click", function()
+		{
+			usbip_vm_connect(this, $(this).attr("role"), $(this).attr("vm"));
+		});
 		tr.find("button[role=format]").click(function(){format_disk(this, $(this).attr("context"), $(this).attr("device"));});
 	});
 
@@ -750,6 +778,10 @@ check_usbip_modules() ;
 	{
 		$(this).css("display", $(".port-switch").is(":checked") ? "block" : "none");
 	});
+		$( "#usbip_devices_list" ).arrive(".show-historical", {onceOnly:false}, function()
+	{
+		$(this).css("display", $(".historical-switch").is(":checked") ? "block" : "none");
+	});
 
 	$(function()
 	{
@@ -759,11 +791,17 @@ check_usbip_modules() ;
 								 "<?=_('USBIP Devices');?>");
 		addButtonTab('<a style="cursor:pointer;" onclick="$.post(\''+UDURL+'\',{\'action\':\'rescan_disks\'});" title="<?=_("Refresh Disks and Configuration");?>"><i class="fa fa-refresh"></i></a>',
 								 "<?=_('USBIP Devices');?>");
-		addButtonTab('<a style="cursor:pointer;" title="<?=_("Switch On to Show Ports");?>"><input type="checkbox" class="port-switch"></a>',
+
+	<?if ($usbip_enabled == "enabled"):?>
+		addButtonTab('<a style="cursor:pointer;" title="<?=_("Switch On to Show USBIP Ports");?>"><input type="checkbox" class="port-switch"></a>',
 								 "<?=_('USBIP Devices');?>");
-		addButtonTab('<a style="cursor:pointer;" title="<?=_("Switch On to Show SMB/NFS/ISO Shares");?>"><input type="checkbox" class="rmtip-switch"></a>',
+		addButtonTab('<a style="cursor:pointer;" title="<?=_("Switch On to Show Remote Devices");?>"><input type="checkbox" class="rmtip-switch"></a>',
 								 "<?=_('USBIP Devices');?>");
-		addButtonTab('<a style="cursor:pointer;" title="<?=_("Switch On to Show Disk Devices");?>"><input type="checkbox" class="disks-switch"></a>',
+
+	<?endif;?>							 
+		addButtonTab('<a style="cursor:pointer;" title="<?=_("Switch On to Show Historic Devices");?>"><input type="checkbox" class="historical-switch"></a>',
+								 "<?=_('USBIP Devices');?>");
+		addButtonTab('<a style="cursor:pointer;" title="<?=_("Switch On to Show Devices");?>"><input type="checkbox" class="disks-switch"></a>',
 								 "<?=_('USBIP Devices');?>");
 
 		/* Add switchButton to Tab/Title bar */
@@ -773,6 +811,14 @@ check_usbip_modules() ;
 			$('.show-disks').slideToggle('slow');
 			$.cookie('USB-disks-view', $('.disks-switch').is(':checked') ? 'true' : 'false', { expires: 3650, path:'/' });
 		});
+
+		$('.historical-switch').switchButton({ labels_placement: "left", on_label: "<?=_('Historic');?>", off_label: "<?=_('Historic');?>", checked: $.cookie('USB-historic-view') != 'false'});
+		$('.historical-switch').change(function()
+		{
+			$('.show-history').slideToggle('slow');
+			$.cookie('USB-historic-view', $('.historical-switch').is(':checked') ? 'true' : 'false', { expires: 3650, path:'/' });
+		});
+
 
 		$('.rmtip-switch').switchButton({ labels_placement: "left", on_label: "<?=_('Remote');?>", off_label: "<?=_('Remote');?>", checked: $.cookie('USB-shares-view') != 'false'});
 		$('.rmtip-switch').change(function()
@@ -878,5 +924,47 @@ check_usbip_modules() ;
 		</script>
 	</div>
 </div>	
+
+<div style="display:none;" data-survey-name="remove_vmmapping_config" data-survey-title="<?=_('Remove Disk Config');?>">
+	<div data-question data-question-title="" data-question-button-done="<?=_('Remove');?>" data-question-icon="warning">
+		<div data-question-format>
+			[surveyOption]
+		</div>
+		<div data-question-content>
+			<div class="swal-title" style="font-size: 20px;"><?=_('This will remove the saved configuration of');?>:</div>
+			<div style="margin-bottom: 15px;margin-top: 15px;">
+				<span style="font-weight: bold;">{0}</span>
+			</div>
+			<div class="swal-title" style="font-size: 20px;">
+				<span class="red" style="font-weight: bold;"><?=_('Are you sure');?>?</span>
+			</div>
+		</div>
+		<div data-question-load></div>
+		<div data-question-done></div>
+	</div>
+	<div data-survey-done>
+		$.post(UDURL,{action:"remove_vmmapping",serial:surveyOption}).done(function(data)
+		{
+			usb_disks(tab_usbdisks);
+			swalShowResult((data == "true") ? true : false);
+		},"json").fail(function(){swalShowResult(false);});
+	</div>
+	<div>
+		<script type="text/javascript">
+			$(function(){
+				window.remove_vmmapping_config = function(i){dousbipDevicesSurvey("remove_vmmapping_config",i);}
+			});
+		</script>
+	</div>
+</div>
+
+
+
+<div style="display: none;">
+	<table class='local_usb wide usb_disks'>
+		<tbody id="spinner">
+		</tbody>
+	</table>
+</div>
 
 <?endif;?>

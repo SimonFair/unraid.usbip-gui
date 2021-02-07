@@ -1,3 +1,3 @@
 **USBIP Gui**
 
-This plugin uses USBIP to show devices available.  
+This plugin provides a GUI front end to USBIP commands.  

@@ -1,5 +1,5 @@
 Menu="Utilities"
-Title="USBIP Settings"
+Title="USB Settings"
 Icon="fa-usb"
 ---
 <?php
@@ -29,8 +29,11 @@ require_once "plugins/$plugin/include/lib_usbip.php";
 $config_file = "/tmp/$plugin/config/$plugin.cfg";
 $cfg = is_file($config_file) ? @parse_ini_file($config_file, true) : array();
 $version = parse_ini_file("/etc/unraid-version");
+$usbip_enabled=$cfg["Config"]["USBIP"] ;
 check_usbip_modules() ;
 
+
+if ($usbip_enabled == "enabled") {
 if (!$usbip_cmds_exist || !$loaded_usbip_host || !$loaded_vhci_hcd) {
 	$notice="Following are missing or not loaded:" ;
 	if (!$usbip_cmds_exist) $notice.=" USBIP Commands" ;
@@ -38,6 +41,7 @@ if (!$usbip_cmds_exist || !$loaded_usbip_host || !$loaded_vhci_hcd) {
 	if (!$loaded_vhci_hcd || !$exists_vhci_hcd) $notice.=" vhci_hcd module" ;
     echo "<p class='notice 	'>"._($notice).".</p>";
    }
+}
 
 
 if (count($_POST)) {
@@ -53,6 +57,7 @@ if (count($_POST)) {
 
 $usbipd = file_exists("/usr/sbin/usbipd");
 $usbipd2 = file_exists("/usr/local/sbin/usbipd");
+
 
 ?>
 
@@ -80,8 +85,28 @@ $usbipd2 = file_exists("/usr/local/sbin/usbipd");
 	showStatus('pid','usbipd');
 </script>
 
+
 <div id="title" class="nocontrol">_(Common Settings)_</div>
-<form markdown="1" name="common_settings" method="POST">
+
+<form markdown="1" name="USBIP_settings" method="POST">
+
+_(Enable USBIP)_:
+: <select name="USBIP" size="1" >
+  <?=mk_option($cfg["Config"]["USBIP"], "disabled", "_(Disabled)_");?>
+  <?=mk_option($cfg["Config"]["USBIP"], "enabled", "_(Enabled)_");?>
+  </select>
+
+:usbip_settings_destructive_plug:
+> If enabled, this will start usbip daemon.
+> Disable will stop if running and not start at boot.
+:end
+
+&nbsp;
+: <input type="submit" name="#apply" value='_(Apply)_'><input type="button" value='_(Done)_' onclick="done()">
+</form>
+
+<div id="title" class="nocontrol">_(USBIP Settings)_</div>
+<form markdown="1" name="USBIP_settings" method="POST">
 
 
 _(Run USBIPD Daemon)_:

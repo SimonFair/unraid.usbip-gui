@@ -17,6 +17,15 @@ require_once("$docroot/plugins/{$plugin}/include/lib_usbip.php");
 
 $COMMAND = $argv[1];
 
+if ($COMMAND != 'spindown') {
+	$DEVNAME = (isset($_ENV['DEVNAME'])) ? $_ENV['DEVNAME'] : ( isset($argv[2]) ? $argv[2] : NULL );
+	$DEVNAME = (file_exists($DEVNAME)) ? realpath($DEVNAME) : $DEVNAME;
+} else {
+	$DEVNAME = $argv[2];
+}
+$remove  = [];
+#if (! $DEVNAME) die("Fail: device not defined.\n");
+
 function usbip_modules_load() {
 	global $plugin, $config;
 	# Get Config file if load module is *YES process.
@@ -70,6 +79,31 @@ function usbip_check_config() {
 	}		
 }
 
+function usb_dev_action($action, $serial)
+{
+
+	if ($action=="usb_add") {
+
+		if (is_autoconnect($serial) == false ) return ;
+		
+
+	
+		$vm = get_vm_config($serial, "VM");
+
+
+		#$state = get_vm_state($vm) ;
+
+		#if ($state != "shutoff") {
+			$vm .= ";".$_ENV['BUSNUM'].";".$_ENV['DEVNUM'].";".$_ENV['ID_SERIAL'] ;	
+	#	sleep(10) ;
+		usbip_log("Info: 'rc.unraid.usbip-gui Autoconnect {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}");
+		vm_map_action($vm, "attach") ;
+		#}
+		#else { usbip_log("Info: 'rc.unraid.usbip-gui Autoconnect ignored VM not runnings {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}");}
+
+		
+	}
+}
 
 
 switch ($COMMAND) {
@@ -90,6 +124,15 @@ switch ($COMMAND) {
 		break;
 
 	case 'refresh':
+		break;
+
+	case 'usb_add':
+		usbip_log("Info: 'rc.unraid.usbip-gui {$argv[1]} {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}");
+		usb_dev_action($argv[1], $_ENV['ID_SERIAL']) ;
+		break;
+
+	case 'usb_remove':
+		usbip_log("Info: 'rc.unraid.usbip-gui {$argv[1]} {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']} ");
 		break;
 
 	case 'check_config':

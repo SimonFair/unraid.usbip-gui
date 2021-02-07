@@ -1,0 +1,2 @@
+ACTION=="add",SUBSYSTEM=="usb",ENV{DEVTYPE}=="usb_device",RUN+="/usr/local/emhttp/plugins/unraid.usbip-gui/scripts/rc.unraid.usbip-gui usb_add >/dev/null 2>&1 & disown"
+ACTION=="remove",SUBSYSTEM=="usb",ENV{DEVTYPE}=="usb_device",RUN+="/usr/local/emhttp/plugins/unraid.usbip-gui/scripts/rc.unraid.usbip-gui usb_remove >/dev/null 2>&1 & disown"
