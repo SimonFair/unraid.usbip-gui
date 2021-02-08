@@ -95,7 +95,7 @@ function usb_dev_action($action, $serial)
 
 		#if ($state != "shutoff") {
 			$vm .= ";".$_ENV['BUSNUM'].";".$_ENV['DEVNUM'].";".$_ENV['ID_SERIAL'] ;	
-	#	sleep(10) ;
+		#sleep(30) ;
 		usbip_log("Info: 'rc.unraid.usbip-gui Autoconnect {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}");
 		vm_map_action($vm, "attach") ;
 		#}
@@ -127,16 +127,26 @@ switch ($COMMAND) {
 		break;
 
 	case 'usb_add':
-		usbip_log("Info: 'rc.unraid.usbip-gui {$argv[1]} {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}");
+		usbip_log("Info: 'rc.unraid.usbip-gui {$argv[1]} {$physical_busid} {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}");
 		usb_dev_action($argv[1], $_ENV['ID_SERIAL']) ;
 		break;
 
 	case 'usb_remove':
-		usbip_log("Info: 'rc.unraid.usbip-gui {$argv[1]} {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']} ");
+		usbip_log("Info: 'rc.unraid.usbip-gui {$argv[1]} {$physical_busid} {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']} ");
 		break;
 
 	case 'check_config':
 		usbip_check_config() ;
+		break;	
+
+	case 'USBMgrBuildConnectedStatus':
+		usbip_log("Info: 'rc.unraid.usbip-gui Building Connected Status") ;
+		USBMgrBuildConnectedStatus() ;
+		break;	
+
+	case 'USBMgrResetConnectedStatus':
+		usbip_log("Info: 'rc.unraid.usbip-gui Reset Connected Status") ;
+		USBMgrResetConnectedStatus() ;
 		break;	
 
 	default:

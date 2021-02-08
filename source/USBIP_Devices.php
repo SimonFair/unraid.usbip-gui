@@ -421,11 +421,12 @@ switch ($_POST['action']) {
 	}
 
 		#var_dump($usb_state) ;
+		
 		 usbip_log("Total render time: ".($time + microtime(true))."s", "DEBUG");
 		 
 		
 		 echo "</div><div id='hist_tab' class='show-history'>";
-
+		
 		 $config_file = $GLOBALS["paths"]["vm_mappings"];
 		 $config = is_file($config_file) ? @parse_ini_file($config_file, true) : array();
 		 $disks_serials = array();
@@ -449,7 +450,7 @@ switch ($_POST['action']) {
 		 }
 		 unassigned_log("Total get_content render time: ".($time + microtime(true))."s", "DEBUG");
 
-
+		 
 		break;
 
 	case 'refresh_page':

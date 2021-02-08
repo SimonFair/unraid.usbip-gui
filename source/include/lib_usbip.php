@@ -364,12 +364,14 @@ function check_usbip_modules() {
 
 }
 
-function get_Valid_USB_Devices() {
-	global $cacheValidUSBDevices;
 
-	if (!is_null($cacheValidUSBDevices)) {
-		return $cacheValidUSBDevices;
-	}
+
+function get_Valid_USB_Devices() {
+	global $cacheUSBDevices;
+
+	#if (!is_null($cacheValidUSBDevices)) {
+	#	return $cacheValidUSBDevices;
+	#}
 
 	$arrValidUSBDevices = [];
 
@@ -397,7 +399,8 @@ function get_Valid_USB_Devices() {
 	exec("lsusb 2>/dev/null", $arrAllUSBDevices);
 
 	foreach ($arrAllUSBDevices as $strUSBDevice) {
-		if (preg_match('/^.+: ID (?P<id>\S+)(?P<name>.*)$/', $strUSBDevice, $arrMatch)) {
+		#if (preg_match('/^.+: ID (?P<id>\S+)(?P<name>.*)$/', $strUSBDevice, $arrMatch)) {
+			if (preg_match('/^Bus (?P<bus>\S+) Device (?P<dev>\S+): ID (?P<id>\S+)(?P<name>.*)$/', $strUSBDevice, $arrMatch)) {
 			#if (stripos($GLOBALS['var']['flashGUID'], str_replace(':', '-', $arrMatch['id'])) === 0) {
 			#	// Device id matches the unraid boot device, skip device
 			#	continue;
@@ -423,21 +426,31 @@ function get_Valid_USB_Devices() {
 			}
 
 			// Clean up the name
-			$arrMatch['name'] = sanitizeVendor($arrMatch['name']);
+#			$arrMatch['name'] = sanitizeVendor($arrMatch['name']);
+            $udev=array();
+			#udevadm info -a   --name=/dev/bus/usb/003/002 | grep KERNEL==
+			$udevcmd = "udevadm info -a   --name=/dev/bus/usb/".$arrMatch['bus']."/".$arrMatch['dev']." | grep KERNEL==" ;
+			exec( $udevcmd , $udev);
+		
+			$physical_busid = trim(substr($udev[0], 13) , '"') ;
 
-			$arrValidUSBDevices[] = [
-			#	'busid' =>
+			$arrValidUSBDevices[$physical_busid] = [
+			#	'physical_busid' => $len, 
+				'cmd' => $udevcmd ,
+				'udev' => $udev ,
+				'busid' => $arrMatch['bus'],
+				'devid' =>$arrMatch['dev'],
 				'id' => $arrMatch['id'],
 				'name' => $arrMatch['name'],
 			];
 		}
 	}
 
-	uasort($arrValidUSBDevices, function ($a, $b) {
-		return strcasecmp($a['id'], $b['id']);
-	});
-
-	$cacheValidUSBDevices = $arrValidUSBDevices;
+	#uasort($arrValidUSBDevices, function ($a, $b) {
+	#	return strcasecmp($a['id'], $b['id']);
+	#});
+ksort($arrValidUSBDevices) ;
+	$cacheUSBDevices = $arrValidUSBDevices;
 
 	return $arrValidUSBDevices;
 }
@@ -460,11 +473,13 @@ function get_usbip_devs() {
 	}
 	
 	
-	exec('usbip list -pl | sort'  ,$usbiplocal) ;
+	#exec('usbip list -pl | sort'  ,$usbiplocal) ;
+	$usbiplocal = get_Valid_USB_Devices() ;
+	#var_dump($usbiplocal) ;
 	/* Build USB Device Array */
-	foreach ($usbiplocal as $usbip) {
-		$usbipdetail=explode('#', $usbip) ;
-		$busid=substr($usbipdetail[0] , 6) ;
+	foreach ($usbiplocal as $busid => $detail) {
+	#	$usbipdetail=explode('#', $usbip) ;
+	#	$busid=substr($usbipdetail[0] , 6) ;
 		
 
 
@@ -608,6 +623,37 @@ function vm_map_action($vm, $action)
 			
 			save_usbstate($srlnbr, "virsh" , $return) ;
 			echo json_encode(["status" => $return ]);
+}
+
+function USBMgrResetConnectedStatus()
+{
+	$config_file = $GLOBALS["paths"]["usb_state"];
+	$config = @parse_ini_file($config_file, true);
+
+	foreach ($config as  $key => $state)
+	{
+		$config[$key]["connected"] = false ;
+	}
+	
+	save_ini_file($config_file, $config);
+	
+}
+
+function USBMgrBuildConnectedStatus()
+{
+	$USBDevices = get_usbip_devs() ;
+	
+	$config_file = $GLOBALS["paths"]["usb_state"];
+	$config = @parse_ini_file($config_file, true);
+
+	foreach ($USBDevices as  $key => $device)
+	{
+        if ($device["isflash"]) continue ;
+		$config[$device["ID_SERIAL"]]["connected"] = false ;
+	}
+
+	save_ini_file($config_file, $config);
+	
 }
 
 #########################################################

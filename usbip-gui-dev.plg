@@ -3,13 +3,13 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unraid.usbip-gui">
 <!ENTITY author    "SimonFair">
-<!ENTITY version   "2021.02.07">
+<!ENTITY version   "2021.02.08">
 <!ENTITY launch    "main">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/SimonFair/unraid.usbip-gui/master">
 <!ENTITY pluginURL "&gitURL;/usbip-gui-dev.plg">
 <!ENTITY supportURL	"https://forums.unraid.net/">
 <!ENTITY packages	"/boot/config/plugins/&name;/packages">
-<!ENTITY md5		"4a0810387999d5588c93163360a6d80e">
+<!ENTITY md5		"4f4391fbcc27c8a7fff27bde1a4f2474">
 ]>
 
 <PLUGIN name="&name;"
@@ -189,6 +189,10 @@ fi
 # Load Package from ich777 repo for usbip modules and commands.
 check_usbip_repo
 
+# move the rules file
+mv /usr/local/emhttp/plugins/&name;/99_persistent_usb.rules /etc/udev/rules.d/
+chmod 644 -R /etc/udev/rules.d/99_persistent_usb.rules 2>/dev/null
+
 # Adjust plugin permissions.
 chmod 755 -R /usr/local/emhttp/plugins/&name; 2>/dev/null
 
@@ -200,6 +204,9 @@ ln -sf /usr/local/emhttp/plugins/&name;/scripts/rc.unraid.usbip-gui /usr/local/s
 
 # Copy Config to tmp and load modules.
 at -M -f /tmp/start_usbip now 2>/dev/null
+
+# reload udev rules
+udevadm control --reload-rules
 
 echo 
 echo "-----------------------------------------------------------"
@@ -229,10 +236,14 @@ find "&packages;/" -type f -iname "*.txz" -delete
 
 rm -f /tmp/plugins/&name;.plg 
 rm -r /tmp/&name;
+rm  -f /etc/udev/rules.d/99_persistent_usb.rules
 
 modprobe -r usbip_host
 modprobe -r vhci_hcd
 killall usbipd
+
+# reload udev rules
+udevadm control --reload-rules
 
 # Remove all plugin files from emhttp.
 removepkg &packages;/&name;-&version;.txz 

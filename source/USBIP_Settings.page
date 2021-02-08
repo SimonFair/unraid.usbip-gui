@@ -105,6 +105,8 @@ _(Enable USBIP)_:
 : <input type="submit" name="#apply" value='_(Apply)_'><input type="button" value='_(Done)_' onclick="done()">
 </form>
 
+<?if ($usbip_enabled == "enabled"):?>
+
 <div id="title" class="nocontrol">_(USBIP Settings)_</div>
 <form markdown="1" name="USBIP_settings" method="POST">
 
@@ -155,6 +157,6 @@ _(Load vhci_hcd)_?
 &nbsp;
 : <input type="submit" name="#apply" value='_(Apply)_'><input type="button" value='_(Done)_' onclick="done()">
 </form>
-
+<?endif;?>
 
 <?endif;?>
