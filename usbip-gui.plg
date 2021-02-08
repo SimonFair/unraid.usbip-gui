@@ -3,13 +3,13 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unraid.usbip-gui">
 <!ENTITY author    "SimonFair">
-<!ENTITY version   "2021.02.07">
+<!ENTITY version   "2021.02.08">
 <!ENTITY launch    "usbip">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/SimonFair/unraid.usbip-gui/master">
 <!ENTITY pluginURL "&gitURL;/usbip-gui.plg">
 <!ENTITY supportURL	"https://forums.unraid.net/topic/100511-plugin-usbip-commands/">
 <!ENTITY packages	"/boot/config/plugins/&name;/packages">
-<!ENTITY md5		"4a0810387999d5588c93163360a6d80e">
+<!ENTITY md5		"4f4391fbcc27c8a7fff27bde1a4f2474">
 ]>
 
 <PLUGIN name="&name;"
@@ -19,11 +19,25 @@
 		pluginURL="&pluginURL;"
 		support="&supportURL;"
 		icon="fa-usb"
-		min="6.9.0-rc2">
+		min="6.8.0">
 
 <CHANGES>
 ##&name;
 ###&version;
+
+- Add: Autoconnect function. If VM defined and Autoconnect is set to Yes then when usb device is connected device will be connected to VM. If VM is not started Error is show.
+- Chg: Main USB list is no longer depetant on USBIP. Version change to support 6.8. Error will be seen during install as it trys to install USBIP package which doesnt exist pre kernel 5.10.1, but is ignored.
+
+Development yet to be completed.
+
+Autoconnect function, check VM status before connecting. 
+Autodisconnect function. Will provide log entry but no action taken at present.
+Add checks before historical info can be removed.
+Rename Plugin to USB Manager
+VM Start/Stop process.
+Change to include USBIP package install in the settings page.
+
+07.02.2021
 
 - Add: VM Mapping functions
 - Add: Display USBIP function messages if not used. Enable/Disable for USBIP added to settings. Defaults to disable, change to enable if you are upgrading.
@@ -210,6 +224,10 @@ fi
 # Load Package from ich777 repo for usbip modules and commands.
 check_usbip_repo
 
+# move the rules file
+mv /usr/local/emhttp/plugins/&name;/99_persistent_usb.rules /etc/udev/rules.d/
+chmod 644 -R /etc/udev/rules.d/99_persistent_usb.rules 2>/dev/null
+
 # Adjust plugin permissions.
 chmod 755 -R /usr/local/emhttp/plugins/&name; 2>/dev/null
 
@@ -221,6 +239,9 @@ ln -sf /usr/local/emhttp/plugins/&name;/scripts/rc.unraid.usbip-gui /usr/local/s
 
 # Copy Config to tmp and load modules.
 at -M -f /tmp/start_usbip now 2>/dev/null
+
+# reload udev rules
+udevadm control --reload-rules
 
 echo 
 echo "-----------------------------------------------------------"
@@ -250,10 +271,14 @@ find "&packages;/" -type f -iname "*.txz" -delete
 
 rm -f /tmp/plugins/&name;.plg 
 rm -r /tmp/&name;
+rm  -f /etc/udev/rules.d/99_persistent_usb.rules
 
 modprobe -r usbip_host
 modprobe -r vhci_hcd
 killall usbipd
+
+# reload udev rules
+udevadm control --reload-rules
 
 # Remove all plugin files from emhttp.
 removepkg &packages;/&name;-&version;.txz 
