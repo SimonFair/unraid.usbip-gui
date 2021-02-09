@@ -193,7 +193,7 @@ switch ($_POST['action']) {
 	
 		echo "<div id='usbip_tab' class='show-disks'>";
 		#echo "<table class='disk_status wide disk_mounts'><thead><tr><td>"._('BusID')."</td><td>"._('Action')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('Reads')."</td><td>"._('Writes')."</td><td>"._('Settings')."</td><td>"._('FS')."</td><td>"._('Size')."</td><td>"._('Used')."</td><td>"._('Free')."</td><td>"._('Log')." idden</td></tr></thead>";
-		echo "<table class='usb_status wide local_usb'><thead><tr><td>"._('BusID')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('Serial Numbers')."</td><td>"._('Set VM')."</td><td>"._('VM State')."</td><td>"._('VM Action')."</td><td>"._('Status')."</td>" ;
+		echo "<table class='usb_status wide local_usb'><thead><tr><td>"._('Physical BusID')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('Serial Numbers')."</td><td>"._('Set VM')."</td><td>"._('VM State')."</td><td>"._('VM Action')."</td><td>"._('Status')."</td>" ;
 		if ($usbip_enabled == "enabled") echo "<td>"._('USBIP Action')."</td>" ;
 		echo "<td>"._('')."</td><td>"._('')."</td><td>"._('')."</td></tr></thead>";
 
@@ -234,8 +234,8 @@ switch ($_POST['action']) {
 				$title .= "   "._("Auto Connect").": ";
 				$title .= (is_autoconnect($srlnbr) == 'Yes') ? "On" : "Off";
 				
-				$title .= "   "._("Auto Disconnect").": ";
-				$title .= (is_autodisconnect($srlnbr) == 'yes') ? "On" : "Off";
+				$title .= "   "._("Auto Connect on VM Start").": ";
+				$title .= (is_autoconnectstart($srlnbr) == 'yes') ? "On" : "Off";
 			
 					$title .=  "   ";
 				
@@ -251,9 +251,10 @@ switch ($_POST['action']) {
 
 				$connected="" ;
 				if ($vm_name != "") {
-				$res = $lv->get_domain_by_name($vm_name);
-				$dom = $lv->domain_get_info($res);
-				$state = $lv->domain_state_translate($dom['state']);
+			#	$res = $lv->get_domain_by_name($vm_name);
+			#	$dom = $lv->domain_get_info($res);
+			#	$state = $lv->domain_state_translate($dom['state']);
+				$state=get_vm_state($vm_name) ;
 
 				if (isset($usb_state[$srlnbr]["connected"])) {
 				  $connected = $usb_state[$srlnbr]["connected"];
@@ -439,14 +440,14 @@ switch ($_POST['action']) {
 			 if (! preg_grep("#{$serial}#", $disks_serials)){
 				 #$mountpoint	= basename(get_config($serial, "mountpoint.1"));
 				 $ct .= "<tr><td><i class='fa fa-usb'></i>"._("")."</td><td>$serial"." </td>";
-				 $ct .= "<td></td><td></td><td></td><td></td><td></td><td></td>";
-				 $ct .= "<td><a title='"._("Edit Historical USB Device Settings")."' href='/USB/USBEditSettings?s=".urlencode($serial)."&t=TRUE'><i class='fa fa-desktop'></i></a></td>";
+				 $ct .= "<td>".$value["VM"]."</td><td></td><td></td><td></td><td></td><td></td>";
+				 $ct .= "<td><a title='"._("Edit Historical USB Device Settings")."' href='/USB/USBEditSettings?s=".urlencode($srlnbr)."&v=".urlencode($value["VM"])."&t=TRUE'><i class='fa fa-desktop'></i></a></td>";
 				 $ct .= "<td title='"._("Remove USB Device configuration")."'><a style='color:#CC0000;font-weight:bold;cursor:pointer;' onclick='remove_vmmapping_config(\"{$serial}\")'><i class='fa fa-remove hdd'></a></td></tr>";
 			 }
 		 }
 		 if (strlen($ct)) {
 			 echo "<div class='show-disks'><div class='show-historical' id='hist_tab'><div id='title'><span class='left'><img src='/plugins/{$plugin}/icons/historical.png' class='icon'>"._('Historical Devices')."</span></div>";
-			 echo "<table class='disk_status wide usb_absent'><thead><tr><td>"._('Device')."</td><td>"._('Serial Number')."</td><td></td><td></td><td></td><td></td><td></td><td></td><td>"._('Settings')."</td><td>"._('Remove')."</td></tr></thead><tbody>{$ct}</tbody></table></div>";
+			 echo "<table class='disk_status wide usb_absent'><thead><tr><td>"._('Device')."</td><td>"._('Serial Number')."</td><td>"._('VM')."</td><td></td><td></td><td></td><td></td><td></td><td>"._('Settings')."</td><td>"._('Remove')."</td></tr></thead><tbody>{$ct}</tbody></table></div>";
 		 }
 		 unassigned_log("Total get_content render time: ".($time + microtime(true))."s", "DEBUG");
 
@@ -512,10 +513,10 @@ switch ($_POST['action']) {
 		}
 		break;
 
-	case 'autodisconnect':
+	case 'autoconnectstart':
 		$serial = urldecode(($_POST['serial']));
 		$status = urldecode(($_POST['status']));
-		echo json_encode(array( 'result' => toggle_autodisconnect($serial, $status) ));
+		echo json_encode(array( 'result' => toggle_autoconnectstart($serial, $status) ));
 		break;
 
 	case 'autoconnect':

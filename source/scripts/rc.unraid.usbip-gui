@@ -14,6 +14,8 @@
 $plugin = "unraid.usbip-gui";
 $docroot = $docroot ?: @$_SERVER['DOCUMENT_ROOT'] ?: '/usr/local/emhttp';
 require_once("$docroot/plugins/{$plugin}/include/lib_usbip.php");
+require_once("webGui/include/Helpers.php");
+require_once "$docroot/plugins/dynamix.vm.manager/include/libvirt_helpers.php";
 
 $COMMAND = $argv[1];
 
@@ -79,32 +81,99 @@ function usbip_check_config() {
 	}		
 }
 
-function usb_dev_action($action, $serial)
+function usb_device_add_action($serial)
 {
 
-	if ($action=="usb_add") {
 
-		if (is_autoconnect($serial) == false ) return ;
-		
 
-	
+
+
 		$vm = get_vm_config($serial, "VM");
 
+		$state = get_vm_state($vm) ;
 
-		#$state = get_vm_state($vm) ;
+		$vm .= ";".$_ENV['BUSNUM'].";".$_ENV['DEVNUM'].";".$_ENV['ID_SERIAL'] ;	
 
-		#if ($state != "shutoff") {
-			$vm .= ";".$_ENV['BUSNUM'].";".$_ENV['DEVNUM'].";".$_ENV['ID_SERIAL'] ;	
+		if (is_autoconnect($serial) == false ) {
+			vm_map_action($vm, "none") ;
+			return ;
+		}
+
+		if ($state != "shutoff") {
 		#sleep(30) ;
-		usbip_log("Info: 'rc.unraid.usbip-gui Autoconnect {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}");
+		usbip_log("Info: rc.unraid.usbip-gui Autoconnect vm state:{$state} {$_ENV['ID_SERIAL']} {$state} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}");
 		vm_map_action($vm, "attach") ;
-		#}
-		#else { usbip_log("Info: 'rc.unraid.usbip-gui Autoconnect ignored VM not runnings {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}");}
+		}
+		else { usbip_log("Info: rc.unraid.usbip-gui Autoconnect ignored VM not running state:{$state} {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}"); }	
 
-		
-	}
+
 }
 
+function usb_device_remove_action($bus, $dev)
+{
+	global $usb_state;
+	load_usbstate(); 
+
+    foreach ($usb_state as $key => $usbdevice) {
+
+	 if ($usbdevice["bus"] == $bus && $usbdevice["dev"] == $dev) {
+	   $vm = $usbdevice["VM"] ;
+	   $serial = $key ;
+	}
+}
+var_dump($serial) ; var_dump($vm) ;
+
+   if (isset($serial)) {
+
+		$state = get_vm_state($vm) ;
+		
+		remove_usbstate($serial) ;
+		usbip_log("Info: rc.unraid.usbip-gui Removed {$serial} vm: {$vm} state:{$state} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}");
+   
+   }
+}
+
+function process_vm_usb_devices($vm, $action) {
+		 global $usb_state;
+		 load_usbstate(); 
+	
+	$vm_mappings=load_vm_mappings(); 
+    #var_dump($vm_mappings) ;
+    foreach ($vm_mappings as $key => $vm_map) {
+	  if ($vm == $vm_map["VM"]) {
+
+	    if (isset($usb_state[$key])	)
+        {
+	     $bus = $usb_state[$key]["bus"];
+	     $dev = $usb_state[$key]["dev"];
+
+	     #var_dump($key) ;
+	     #var_dump($bus) ;
+	     #var_dump($dev) ;
+	     #var_dump($vm) ;
+
+	
+		$vmname = $vm.";".$bus.";".$dev.";".$key ;
+	    #  var_dump($key) ;
+	    if ($action == "stopped") {
+		  # Update usb.ini. Remove VM and Connected.
+
+		  save_usbstate($key, "virsherror" , false) ;
+		  save_usbstate($key, "connected" , false) ;
+		  save_usbstate($key, "VM" , "") ;
+		  usbip_log("Info: rc.unraid.usbip-gui VM Shutdown {$key} vm: {$vm} state:{$state}");
+		}
+	 
+	    if ($action == "prepare") {
+		   if ($vm_map["autoconnectstart"] == "yes") {
+			   vm_map_action($vmname, "attach") ;
+			   usbip_log("Info: rc.unraid.usbip-gui Autoconnect Start {$key} vm: {$vm} state:{$state}");
+		    }
+	     }
+	    }
+	}
+}
+}
 
 switch ($COMMAND) {
 	case 'modules_load':
@@ -127,30 +196,36 @@ switch ($COMMAND) {
 		break;
 
 	case 'usb_add':
-		usbip_log("Info: 'rc.unraid.usbip-gui {$argv[1]} {$physical_busid} {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}");
-		usb_dev_action($argv[1], $_ENV['ID_SERIAL']) ;
+		usbip_log("Info: rc.unraid.usbip-gui {$argv[1]} {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}");
+		usb_device_add_action($_ENV['ID_SERIAL']) ;
 		break;
 
 	case 'usb_remove':
-		usbip_log("Info: 'rc.unraid.usbip-gui {$argv[1]} {$physical_busid} {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']} ");
+		usbip_log("Info: rc.unraid.usbip-gui {$argv[1]} {$physical_busid} {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']} ");
+		usb_device_remove_action($_ENV['BUSNUM'] ,$_ENV['DEVNUM'] ) ;
 		break;
+
+	case 'vm_action':
+		#usbip_log("Info: rc.unraid.usbip-gui  {$argv[1]} {$argv[2]} {$argv[3]} {$argv[4]} {$argv[5]}");
+		process_vm_usb_devices($argv[2],$argv[3] ) ;
+		break;	
 
 	case 'check_config':
 		usbip_check_config() ;
 		break;	
 
 	case 'USBMgrBuildConnectedStatus':
-		usbip_log("Info: 'rc.unraid.usbip-gui Building Connected Status") ;
+		usbip_log("Info: rc.unraid.usbip-gui Building Connected Status") ;
 		USBMgrBuildConnectedStatus() ;
 		break;	
 
 	case 'USBMgrResetConnectedStatus':
-		usbip_log("Info: 'rc.unraid.usbip-gui Reset Connected Status") ;
+		usbip_log("Info: rc.unraid.usbip-gui Reset Connected Status") ;
 		USBMgrResetConnectedStatus() ;
 		break;	
 
 	default:
-		usbip_log("Error: 'rc.unraid.usbip-gui {$argv[1]} {$argv[2]}' not understood");
+		usbip_log("Error: rc.unraid.usbip-gui {$argv[1]} {$argv[2]} {$argv[3]} {$argv[4]} not understood");
 		usbip_log("rc.unraid.usbip-gui usage: 'modules_load','start_daemon','stop_daemon', 'reload', 'refresh', 'check_config");
 		exit(0);
 		break;

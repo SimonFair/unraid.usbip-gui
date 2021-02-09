@@ -203,8 +203,14 @@ function get_vm_config($sn, $var) {
 	return (isset($config[$sn][$var])) ? html_entity_decode($config[$sn][$var]) : FALSE;
 }
 
-function is_autodisconnect($sn) {
-	$auto = get_vm_config($sn, "autodisconnect");
+function load_vm_mappings() {
+	$config_file = $GLOBALS["paths"]["vm_mappings"];
+	$config = @parse_ini_file($config_file, true);
+	return (isset($config)) ? $config : array();
+}
+
+function is_autoconnectstart($sn) {
+	$auto = get_vm_config($sn, "autoconnectstart");
 	return ( $auto == "yes")  ? TRUE : FALSE;
 }
 
@@ -232,12 +238,12 @@ function remove_vm_mapping($source) {
 	return (! isset($config[$source])) ? TRUE : FALSE;
 	}
 
-function toggle_autodisconnect($sn, $status) {
+function toggle_autoconnectstart($sn, $status) {
 	$config_file = $GLOBALS["paths"]["vm_mappings"];
 	$config = @parse_ini_file($config_file, true);
-	$config[$sn]["autodisconnect"] = ($status == "true") ? "yes" : "no";
+	$config[$sn]["autoconnectstart"] = ($status == "true") ? "yes" : "no";
 	save_ini_file($config_file, $config);
-	return ($config[$sn]["autodisconnect"] == "yes") ? 'true' : 'false';
+	return ($config[$sn]["autoconnectstart"] == "yes") ? 'true' : 'false';
 }
 
 function toggle_autoconnect($sn, $status) {
@@ -518,6 +524,16 @@ function get_all_usb_info($bus="all") {
 	return $usb_devs;
 }
 
+function get_vm_state($vm_name)
+{
+	global $lv ;
+	if (!isset($lv))  return "Error State" ;
+	$res = $lv->get_domain_by_name($vm_name);
+	$dom = $lv->domain_get_info($res);
+	$state = $lv->domain_state_translate($dom['state']);
+    return $state ;
+}
+
 
 function parse_usbip_port()
 {
@@ -597,31 +613,38 @@ function parse_usbip_remote($remote_host)
 
 function vm_map_action($vm, $action)
 {
-			$explode= explode(";",$vm );
+			
+		    $explode= explode(";",$vm );
 			$vmname = $explode[0] ;
 			$bus = $explode[1] ;
 			$dev = $explode[2] ;
 			$srlnbr= $explode[3] ;
 			$usbstr = '';
 			
+			if ($action != "none") {
 			$return=virsh_device_by_bus($action,$vmname, $bus, $dev) ;
 			#var_dump($return) ;
 			#error: Failed to attach device from
-			
+
 			if (substr($return,0,6) === "error:") {
 				save_usbstate($srlnbr, "virsherror" , true) ;
 			} else {
 		    	save_usbstate($srlnbr, "virsherror" , false) ;
-			
+			}
 			
 			if ($action == "attach") {
 					save_usbstate($srlnbr, "connected" , true) ;
 				} else {
 					save_usbstate($srlnbr, "connected" , false) ;
+					$vmname =""  ;
 				}
+				save_usbstate($srlnbr, "VM" , $vmname) ;	
 			}	
 			
 			save_usbstate($srlnbr, "virsh" , $return) ;
+
+			save_usbstate($srlnbr, "bus" , $bus) ;
+			save_usbstate($srlnbr, "dev" , $dev) ;
 			echo json_encode(["status" => $return ]);
 }
 

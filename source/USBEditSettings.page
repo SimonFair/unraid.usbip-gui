@@ -42,7 +42,7 @@ if (isset($_GET['s'])) {
 	$isflash = $_GET['f'];
 	$width = "50%";
 	$autoconnect = (is_autoconnect($serial)) ? "checked" : "";
-	$autodisconnect = (is_autodisconnect($serial)) ? "checked" : ""; 
+	$autoconnectstart = (is_autoconnectstart($serial)) ? "checked" : ""; 
 }
 ?>
 
@@ -76,7 +76,7 @@ if (isset($_GET['s'])) {
 &nbsp;
 
 <td title='_(Turn on to Auto Connect to VM if USB Device is Added)_.'><input type='checkbox' class='autoconnect-switch'></td>
-<td title='_(Turn on to Auto Disconnect from VM if USB Device is Removed)_.'><input type='checkbox' class='autodisconnect-switch'></td>
+<td title='_(Turn on to Auto Connect to VM if VM is started)_.'><input type='checkbox' class='autoconnectstart-switch'></td>
 </tr>
 </table>
 <?php
@@ -121,10 +121,10 @@ if (isset($_GET['s'])) {
 		},"json");
 	});
 
-	$('.autodisconnect-switch').switchButton({ labels_placement: "left", on_label: "<?=_('Auto Disconnect');?>", off_label: "<?=_('Auto Disconnect');?>", checked:"<?=$autodisconnect;?>" });
-	$('.autodisconnect-switch').change(function()
+	$('.autoconnectstart-switch').switchButton({ labels_placement: "left", on_label: "<?=_('Auto Connect to VM at VM Start');?>", off_label: "<?=_('Auto Connect to VM at VM Start');?>", checked:"<?=$autoconnectstart;?>" });
+	$('.autoconnectstart-switch').change(function()
 	{
-		$.post(UDURL,{action:"autodisconnect",serial:"<?=$serial;?>",status:$(this).is(":checked")},function(data)
+		$.post(UDURL,{action:"autoconnectstart",serial:"<?=$serial;?>",status:$(this).is(":checked")},function(data)
 		{
 			$(this).prop("checked",data.result);
 		},"json");
