@@ -441,7 +441,7 @@ switch ($_POST['action']) {
 				 #$mountpoint	= basename(get_config($serial, "mountpoint.1"));
 				 $ct .= "<tr><td><i class='fa fa-usb'></i>"._("")."</td><td>$serial"." </td>";
 				 $ct .= "<td>".$value["VM"]."</td><td></td><td></td><td></td><td></td><td></td>";
-				 $ct .= "<td><a title='"._("Edit Historical USB Device Settings")."' href='/USB/USBEditSettings?s=".urlencode($srlnbr)."&v=".urlencode($value["VM"])."&t=TRUE'><i class='fa fa-desktop'></i></a></td>";
+				 $ct .= "<td><a title='"._("Edit Historical USB Device Settings")."' href='/USB/USBEditSettings?s=".urlencode($serial)."&v=".urlencode($value["VM"])."&t=TRUE'><i class='fa fa-desktop'></i></a></td>";
 				 $ct .= "<td title='"._("Remove USB Device configuration")."'><a style='color:#CC0000;font-weight:bold;cursor:pointer;' onclick='remove_vmmapping_config(\"{$serial}\")'><i class='fa fa-remove hdd'></a></td></tr>";
 			 }
 		 }

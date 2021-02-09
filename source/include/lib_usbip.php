@@ -673,6 +673,8 @@ function USBMgrBuildConnectedStatus()
 	{
         if ($device["isflash"]) continue ;
 		$config[$device["ID_SERIAL"]]["connected"] = false ;
+		$config[$device["ID_SERIAL"]]["bus"] = $device["BUSNUM"] ;
+		$config[$device["ID_SERIAL"]]["dev"] = $device["DEVNUM"] ;
 	}
 
 	save_ini_file($config_file, $config);
