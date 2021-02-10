@@ -100,14 +100,6 @@ Get the plugin bundle.
 <MD5>&md5;</MD5>
 </FILE>
 
-<FILE Name="&emhttp;/README.md">
-<INLINE>
-**USB Manager**
-
-Adds USB Manager function and USBIP support.
-</INLINE>
-</FILE>
-
 <!--
 The 'post-updgrade' script.
 -->
