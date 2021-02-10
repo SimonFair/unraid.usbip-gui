@@ -639,7 +639,7 @@ function vm_map_action($vm, $action)
 					$vmname =""  ;
 				}
 				save_usbstate($srlnbr, "VM" , $vmname) ;	
-			}	
+			}	else {  USBMgrCreateStatusEntry($srlnbr, $bus, $dev) ;}
 			
 			save_usbstate($srlnbr, "virsh" , $return) ;
 
@@ -662,6 +662,52 @@ function USBMgrResetConnectedStatus()
 	
 }
 
+function USBMgrCreateStatusEntry($serial, $bus , $dev)
+{
+	$USBDevices = get_usbip_devs() ;
+	$config_file = $GLOBALS["paths"]["usb_state"];
+	$config = @parse_ini_file($config_file, true);
+
+
+	// Get a list of all usb hubs so we can blacklist them
+	exec("cat /sys/bus/usb/drivers/hub/*/modalias | grep -Po 'usb:v\K\w{9}' | tr 'p' ':'", $arrAllUSBHubs);
+
+
+
+	$udev=array();
+	#udevadm info -a   --name=/dev/bus/usb/003/002 | grep KERNEL==
+	$udevcmd = "udevadm info -a   --name=/dev/bus/usb/".$bus."/".$dev." | grep KERNEL==" ;
+	exec( $udevcmd , $udev);
+	$physical_busid = trim(substr($udev[0], 13) , '"') ;
+ 
+	$device = $USBDevices[$physical_busid] ;
+
+	
+	$id = strtolower($device["ID_VENDOR_ID"]).":".$device["ID_MODEL_ID"] ;
+	
+	var_dump($device) ;
+	#if (in_array(strtoupper($id), $arrAllUSBHubs)) {
+		if (!isset($device)) {
+		// Device class is a Hub, skip device
+		$config[$serial]["ishub"] = true ;
+	} else {$config[$serial]["ishub"] = false ; }
+
+	if (!$device["isflash"]) {
+    
+	$config[$serial]["connected"] = false ;
+	$config[$serial]["bus"] = $device["BUSNUM"] ;
+	$config[$serial]["dev"] = $device["DEVNUM"] ;
+	$config[$serial]["ID_VENDOR_FROM_DATABASE"] = $device["ID_VENDOR_FROM_DATABASE"] ;
+	$config[$serial]["ID_VENDOR_ID"] = $device["ID_VENDOR_ID"] ;
+	$config[$serial]["ID_MODEL"] = $device["ID_MODEL"] ;
+	$config[$serial]["ID_MODEL_ID"] = $device["ID_MODEL_ID"] ;
+
+	save_ini_file($config_file, $config);
+	}
+
+}
+
+
 function USBMgrBuildConnectedStatus()
 {
 	$USBDevices = get_usbip_devs() ;
@@ -673,8 +719,12 @@ function USBMgrBuildConnectedStatus()
 	{
         if ($device["isflash"]) continue ;
 		$config[$device["ID_SERIAL"]]["connected"] = false ;
-		$config[$device["ID_SERIAL"]]["bus"] = $device["BUSNUM"] ;
-		$config[$device["ID_SERIAL"]]["dev"] = $device["DEVNUM"] ;
+		$config[$device["ID_SERIAL"]]["bus"] = $bus ;
+		$config[$device["ID_SERIAL"]]["dev"] = $dev ;
+		$config[$device["ID_SERIAL"]]["ID_VENDOR_FROM_DATABASE"] = $device["ID_VENDOR_FROM_DATABASE"] ;
+		$config[$device["ID_SERIAL"]]["ID_VENDOR_ID"] = $device["ID_VENDOR_ID"] ;
+		$config[$device["ID_SERIAL"]]["ID_PRODUCT"] = $device["ID_PRODUCT"] ;
+		$config[$device["ID_SERIAL"]]["ID_PRODUCT_ID"] = $device["ID_PRODUCT_ID"] ;
 	}
 
 	save_ini_file($config_file, $config);
