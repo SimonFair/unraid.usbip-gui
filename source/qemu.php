@@ -3,7 +3,7 @@
 <?php
 
 if ($argv[2] == 'prepare' || $argv[2] == 'stopped'){
-    shell_exec("/usr/local/emhttp/plugins/unraid.usbip-gui/scripts/rc.unraid.usbip-gui vm_action >/dev/null 2>&1 & disown") ;
+    shell_exec("/usr/local/emhttp/plugins/unraid.usbip-gui/scripts/rc.unraid.usbip-gui vm_action {$argv[1]} {$argv[2]} {$argv[3]} {$argv[4]}  >/dev/null 2>&1 & disown") ;
 }
 
 if (!isset($argv[2]) || $argv[2] != 'start') {
