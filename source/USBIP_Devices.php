@@ -82,11 +82,11 @@ function make_mount_button($device) {
 
 		if ($device["DRIVER"] == "usbip-host") {
 		$context = "disk";
-		$button = sprintf($button, $context, 'unbind ', $disabled, 'fa fa-erase', _('Unbind'));
+		$button = sprintf($button, $context, 'unbind', $disabled, 'fa fa-erase', _('Unbind'));
 		}
 		else {
 			$context = "disk";
-			$button = sprintf($button, $context, 'bind ', $disabled, 'fa fa-import', _('Bind'));
+			$button = sprintf($button, $context, 'bind', $disabled, 'fa fa-import', _('Bind'));
 		}
 	
 	return $button;

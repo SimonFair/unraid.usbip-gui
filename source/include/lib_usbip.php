@@ -621,7 +621,7 @@ function vm_map_action($vm, $action)
 			$srlnbr= $explode[3] ;
 			$usbstr = '';
 			
-			if ($action != "none") {
+	#		if ($action != "none") {
 			$return=virsh_device_by_bus($action,$vmname, $bus, $dev) ;
 			#var_dump($return) ;
 			#error: Failed to attach device from
@@ -639,12 +639,12 @@ function vm_map_action($vm, $action)
 					$vmname =""  ;
 				}
 				save_usbstate($srlnbr, "VM" , $vmname) ;	
-			}	else {  USBMgrCreateStatusEntry($srlnbr, $bus, $dev) ;}
+	#		}	else {  USBMgrCreateStatusEntry($srlnbr, $bus, $dev) ;}
 			
 			save_usbstate($srlnbr, "virsh" , $return) ;
 
-			save_usbstate($srlnbr, "bus" , $bus) ;
-			save_usbstate($srlnbr, "dev" , $dev) ;
+	#		save_usbstate($srlnbr, "bus" , $bus) ;
+	#		save_usbstate($srlnbr, "dev" , $dev) ;
 			echo json_encode(["status" => $return ]);
 }
 
@@ -685,11 +685,21 @@ function USBMgrCreateStatusEntry($serial, $bus , $dev)
 	
 	$id = strtolower($device["ID_VENDOR_ID"]).":".$device["ID_MODEL_ID"] ;
 	
-	var_dump($device) ;
+	#var_dump($device) ;
 	#if (in_array(strtoupper($id), $arrAllUSBHubs)) {
 		if (!isset($device)) {
 		// Device class is a Hub, skip device
 		$config[$serial]["ishub"] = true ;
+		$udev=array();
+		$device = array() ;
+		exec('udevadm info --query=property  --path=/sys/bus/usb/devices/'.$physical_busid, $udev) ;
+		
+		foreach ($udev as $udevi)
+		{
+			$udevisplit=explode("=",$udevi) ;
+			$device[$udevisplit[0]] = $udevisplit[1] ;
+		}
+        
 	} else {$config[$serial]["ishub"] = false ; }
 
 	if (!$device["isflash"]) {

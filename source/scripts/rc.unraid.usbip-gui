@@ -90,8 +90,10 @@ function usb_device_add_action($serial)
 
 		$vm .= ";".$_ENV['BUSNUM'].";".$_ENV['DEVNUM'].";".$_ENV['ID_SERIAL'] ;	
 
+		USBMgrCreateStatusEntry($_ENV['ID_SERIAL'], $_ENV['BUSNUM'], $_ENV['DEVNUM']) ;
+
 		if (is_autoconnect($serial) == false ) {
-			vm_map_action($vm, "none") ;
+		#	vm_map_action($vm, "none") ;
 			return ;
 		}
 
@@ -100,7 +102,7 @@ function usb_device_add_action($serial)
 		vm_map_action($vm, "attach") ;
 		}
 		else { 
-			vm_map_action($vm, "none") ;
+		#	vm_map_action($vm, "none") ;
 			usbip_log("Info: rc.unraid.usbip-gui Autoconnect ignored VM not running state:{$state} {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}"); 
 		}	
 
