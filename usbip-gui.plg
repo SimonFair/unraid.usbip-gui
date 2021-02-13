@@ -3,13 +3,13 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unraid.usbip-gui">
 <!ENTITY author    "SimonFair">
-<!ENTITY version   "2021.02.12">
+<!ENTITY version   "2021.02.13">
 <!ENTITY launch    "usb">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/SimonFair/unraid.usbip-gui/master">
 <!ENTITY pluginURL "&gitURL;/usbip-gui.plg">
 <!ENTITY supportURL	"https://forums.unraid.net/topic/100511-plugin-usbip-commands/">
 <!ENTITY packages	"/boot/config/plugins/&name;/packages">
-<!ENTITY md5		"f047448d32f032dd5a8ef962026d5c6c">
+<!ENTITY md5		"f59828f60b90e0fb8eedb27a98e0207e">
 ]>
 
 <PLUGIN name="&name;"
@@ -25,9 +25,13 @@
 ##&name;
 ###&version;
 
+- Add Show remote connection status. Host/IP to follow WIP.
+
+12.02.2021
+
 - Chg Fix for Bind/Unbind Button.
 
-10a.20.2021
+10a.02.2021
 - Add Disconnect update function implemented.
 - Add Auto Connect on VM Start.
 - Chg Auto Connect on device added checks VM Status

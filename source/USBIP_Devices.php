@@ -194,8 +194,8 @@ switch ($_POST['action']) {
 		echo "<div id='usbip_tab' class='show-disks'>";
 		#echo "<table class='disk_status wide disk_mounts'><thead><tr><td>"._('BusID')."</td><td>"._('Action')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('Reads')."</td><td>"._('Writes')."</td><td>"._('Settings')."</td><td>"._('FS')."</td><td>"._('Size')."</td><td>"._('Used')."</td><td>"._('Free')."</td><td>"._('Log')." idden</td></tr></thead>";
 		echo "<table class='usb_status wide local_usb'><thead><tr><td>"._('Physical BusID')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('Serial Numbers')."</td><td>"._('Set VM')."</td><td>"._('VM State')."</td><td>"._('VM Action')."</td><td>"._('Status')."</td>" ;
-		if ($usbip_enabled == "enabled") echo "<td>"._('USBIP Action')."</td>" ;
-		echo "<td>"._('')."</td><td>"._('')."</td><td>"._('')."</td></tr></thead>";
+		if ($usbip_enabled == "enabled") echo "<td>"._('USBIP Action')."</td><td>"._('USBIP Status') ;
+		echo "</td><td>"._('')."</td><td>"._('')."</td></tr></thead>";
 
 		
 		echo "<tbody>";
@@ -286,8 +286,11 @@ switch ($_POST['action']) {
 				echo "<td>".$connected."</td>" ;
 				/* USBIP Bind button */
 				if ($usbip_enabled == "enabled") echo "<td class='mount'>{$mbutton}</td>";
+			
+				echo "<td>".$detail["usbip_status"]."</td>" ;	
+				
 
-		echo "</tr>";	
+		echo "</tr>" ;
 			}
 		} else {
 			echo "<tr><td colspan='12' style='text-align:center;'>"._('No Bindable Devices available').".</td></tr>";

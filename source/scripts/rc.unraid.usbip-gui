@@ -175,6 +175,35 @@ function process_vm_usb_devices($vm, $action) {
 }
 }
 
+function usbip_syslog_processing($busid) {
+
+	exec("tail -n 20 /var/log/syslog", $syslog ) ;
+	var_dump($busid) ;
+#	$syslog=array_reverse($syslog) ;
+
+#	$busid = $argv[3] ;
+
+#	foreach ($syslog as $syslog_entry) {
+
+	#	Feb 13 15:59:19 Tower usbipd: usbipd: info: connection from 192.168.1.29:46248
+	#	Feb 13 15:59:19 Tower usbipd: usbipd: info: received request: 0x8003(6)
+	#	Feb 13 15:59:19 Tower usbipd: usbipd: info: found requested device: 3-2.2
+	#	Feb 13 15:59:19 Tower usbipd: usbip: info: connect: 3-2.2
+	#	Feb 13 15:59:19 Tower kernel: usbip-host 3-2.2: stub up
+	#	Feb 13 15:59:19 Tower usbipd: usbipd: info: request 0x8003(6): complete
+	#	Feb 13 15:59:19 Tower USBIP: debug: usbip syslog filter triggered
+
+
+
+	#var_dump($syslog_entry) ;
+
+#		if (preg_match('/^(?P<date>\S+) info: connection from (?P<IP>\S+)(?P<Port>.*)$/', $syslog_entry, $arrMatch)) {
+#			var_dump($arrMatch) ;
+#			var_dump($syslog_entry) ;
+#	}
+#	}
+}
+
 switch ($COMMAND) {
 	case 'modules_load':
 		usbip_modules_load();
@@ -212,6 +241,10 @@ switch ($COMMAND) {
 
 	case 'check_config':
 		usbip_check_config() ;
+		break;	
+
+	case 'usb_syslog':
+		usbip_syslog_processing($argv[2]) ;
 		break;	
 
 	case 'USBMgrBuildConnectedStatus':

@@ -488,7 +488,13 @@ function get_usbip_devs() {
 	#	$busid=substr($usbipdetail[0] , 6) ;
 		
 
-
+	if (file_exists("/sys/bus/usb/devices/".$busid."/usbip_status")) { 
+		$usbip_status=file_get_contents("/sys/bus/usb/devices/".$busid."/usbip_status") ;
+		if ($usbip_status == 1 ) $usbip_status_desc="Bound to driver" ;
+		if ($usbip_status == 2 ) $usbip_status_desc="Connected to Remote host" ;
+		if ($usbip_status == false ) $usbip_status_desc="" ;
+		$tj[$busid]["usbip_status"] = $usbip_status_desc ;
+}
 		/* Build array from udevadm */
 		/* udevadm info --query=property -x --path=/sys/bus/usb/devices/ + busid */
         $udev=array();
@@ -691,7 +697,7 @@ function USBMgrCreateStatusEntry($serial, $bus , $dev)
 		// Device class is a Hub, skip device
 		$config[$serial]["ishub"] = true ;
 		$udev=array();
-		$device = array() ;
+		#$device = array() ;
 		exec('udevadm info --query=property  --path=/sys/bus/usb/devices/'.$physical_busid, $udev) ;
 		
 		foreach ($udev as $udevi)
