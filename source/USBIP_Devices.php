@@ -24,19 +24,22 @@ if ($translations) {
 	$noscript = true;
 	require_once "$docroot/plugins/$plugin/include/Legacy.php";
 }
-
+global $libvirtd_running ;
 require_once("plugins/{$plugin}/include/lib_usbip.php");
 require_once("webGui/include/Helpers.php");
 require_once "$docroot/plugins/dynamix.vm.manager/include/libvirt_helpers.php";
 
-$vms = $lv->get_domains();
-$arrValidUSBDevices = getValidUSBDevices();
+$libvirtd_running = is_file('/var/run/libvirt/libvirtd.pid') ;
+if ($libvirtd_running) $vms = $lv->get_domains();
+#$arrValidUSBDevices = getValidUSBDevices();
 
 if (isset($_POST['display'])) $display = $_POST['display'];
 if (isset($_POST['var'])) $var = $_POST['var'];
 check_usbip_modules() ;
 
 load_usbstate() ;
+
+
 
 /*
 function netmasks($netmask, $rev = false)
@@ -71,7 +74,7 @@ function make_mount_button($device) {
 		 $button = sprintf($button, $context, 'urflash', $disabled, 'fa fa-erase', _('UnRaid Flash'));
 		} 
 
-			if ($loaded_usbip_host == "0")
+			if ($loaded_usbip_host == "0" || !$device["islocal"] )
 			 {
 			$disabled = "disabled <a href=\"#\" title='"._("usbip_host module not loaded")."'" ;
 		 } 
@@ -141,7 +144,7 @@ function make_vm_button($vm,$busid,$devid,$srlnbr,$vmstate,$isflash) {
 	   } 
 
 	$buttontext= 'VM Attach' ;
-	if ($vm == "" || $vmstate == "shutoff" )
+	if ($vm == "" || $vmstate == "shutoff" || $vmstate == "Disabled."  )
 		{
 			$disabled = "disabled <a href=\"#\" title='"._("vhci_hcd module not loaded")."'" ;
 		} else {
@@ -163,7 +166,7 @@ function make_vm_button($vm,$busid,$devid,$srlnbr,$vmstate,$isflash) {
 
 switch ($_POST['action']) {
 	case 'get_content':
-		global $paths, $usbip_cmds_exist, $usbip_enabled;
+		global $paths, $usbip_cmds_exist, $usbip_enabled, $usbip_local;
    
 		if ($usbip_enabled == "enabled") {
 		if (!$usbip_cmds_exist || !$loaded_usbip_host || !$loaded_vhci_hcd) {
@@ -175,7 +178,7 @@ switch ($_POST['action']) {
 		    echo "<p class='notice 	'>"._($notice).".</p>";
 		   }
         }
-
+		$usb_connects = load_usb_connects() ;
 		usbip_log("Starting page render [get_content]", "DEBUG");
 		$time		 = -microtime(true);
 		$config_file = $paths['vm_mappings'];
@@ -190,7 +193,7 @@ switch ($_POST['action']) {
 
 		/* Disk devices */
 		$usbip = get_all_usb_info();
-	
+		
 		echo "<div id='usbip_tab' class='show-disks'>";
 		#echo "<table class='disk_status wide disk_mounts'><thead><tr><td>"._('BusID')."</td><td>"._('Action')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('Reads')."</td><td>"._('Writes')."</td><td>"._('Settings')."</td><td>"._('FS')."</td><td>"._('Size')."</td><td>"._('Used')."</td><td>"._('Free')."</td><td>"._('Log')." idden</td></tr></thead>";
 		echo "<table class='usb_status wide local_usb'><thead><tr><td>"._('Physical BusID')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('Serial Numbers')."</td><td>"._('Set VM')."</td><td>"._('VM State')."</td><td>"._('VM Action')."</td><td>"._('Status')."</td>" ;
@@ -254,7 +257,9 @@ switch ($_POST['action']) {
 			#	$res = $lv->get_domain_by_name($vm_name);
 			#	$dom = $lv->domain_get_info($res);
 			#	$state = $lv->domain_state_translate($dom['state']);
-				$state=get_vm_state($vm_name) ;
+
+			#put check for  VM subsystem running.
+				if ($libvirtd_running) $state=get_vm_state($vm_name) ; else $state = "Disabled." ;
 
 				if (isset($usb_state[$srlnbr]["connected"])) {
 				  $connected = $usb_state[$srlnbr]["connected"];
@@ -286,9 +291,18 @@ switch ($_POST['action']) {
 				echo "<td>".$connected."</td>" ;
 				/* USBIP Bind button */
 				if ($usbip_enabled == "enabled") echo "<td class='mount'>{$mbutton}</td>";
-			
-				echo "<td>".$detail["usbip_status"]."</td>" ;	
+			    $usbip_status=$detail["usbip_status"] ;
+				if ($usbip_status == 1 ) $usbip_status_desc="Bound to driver" ;
 				
+				if ($usbip_status == 2 ) {
+					$usbip_status_desc="Connected to Remote Host:" ;
+					if ($usb_connects["hostname"] = "" ) $usb_rmt_iphost=$usb_connects[$disk]["IP"] ; 	else $usb_rmt_iphost=$usb_connects[$disk]["hostname"] ;
+				}
+				else $usb_rmt_ip = "" ;
+
+				if ($usbip_status == false ) $usbip_status_desc="" ;
+				echo "<td>".$usbip_status_desc."</td>" ;	
+				if ($usbip_status == 2) echo "<td> ".$usb_rmt_iphost."</td>" ;
 
 		echo "</tr>" ;
 			}

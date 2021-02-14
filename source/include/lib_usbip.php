@@ -23,6 +23,7 @@ $paths = [  "device_log"		=> "/tmp/{$plugin}/",
 			"hotplug_status"	=> "/var/state/{$plugin}/hotplug_status.json",
 			"remote_usbip"		=> "/tmp/{$plugin}/config/remote_usbip.cfg",
 			"vm_mappings"		=> "/tmp/{$plugin}/config/vm_mappings.cfg",
+			"usb_rmt_connect"	=> "/tmp/{$plugin}/config/usb_rmt_connect.cfg",
 			"usb_state"			=> "/usr/local/emhttp/state/usb.ini",
 			"state"				=> "/var/state/{$plugin}/{$plugin}.state",
 		];
@@ -209,6 +210,12 @@ function load_vm_mappings() {
 	return (isset($config)) ? $config : array();
 }
 
+function load_usb_connects() {
+	$config_file = $GLOBALS["paths"]["usb_rmt_connect"];
+	$config = @parse_ini_file($config_file, true);
+	return (isset($config)) ? $config : array();
+}
+
 function is_autoconnectstart($sn) {
 	$auto = get_vm_config($sn, "autoconnectstart");
 	return ( $auto == "yes")  ? TRUE : FALSE;
@@ -373,13 +380,24 @@ function check_usbip_modules() {
 
 
 function get_Valid_USB_Devices() {
-	global $cacheUSBDevices;
+	global $cacheUSBDevices, $usbip_enabled ,$usbip_cmds_exist;
 
 	#if (!is_null($cacheValidUSBDevices)) {
 	#	return $cacheValidUSBDevices;
 	#}
 
 	$arrValidUSBDevices = [];
+
+	$usbip_local = array() ;
+	if ($usbip_enabled == "enabled" && $usbip_cmds_exist) {
+			exec('usbip list -pl | sort'  ,$usbiplocal) ;
+	        
+			foreach ($usbiplocal as $usbip) {
+	 		$usbipdetail=explode('#', $usbip) ;
+	 		$usbip_local[]=substr($usbipdetail[0] , 6) ;
+			} 
+	}
+	
 
 #busid=3-1#usbid=0781:5571#
 #busid=3-2#usbid=1c4f:0016#
@@ -418,6 +436,8 @@ function get_Valid_USB_Devices() {
 				continue;
 			}
 
+
+
 			$arrMatch['name'] = trim($arrMatch['name']);
 
 			if (empty($arrMatch['name'])) {
@@ -440,6 +460,10 @@ function get_Valid_USB_Devices() {
 		
 			$physical_busid = trim(substr($udev[0], 13) , '"') ;
 
+			if (in_array($physical_busid, $usbip_local )) {
+				$islocal = true ;
+			} else { $islocal = false ;}
+
 			$arrValidUSBDevices[$physical_busid] = [
 			#	'physical_busid' => $len, 
 				'cmd' => $udevcmd ,
@@ -448,6 +472,7 @@ function get_Valid_USB_Devices() {
 				'devid' =>$arrMatch['dev'],
 				'id' => $arrMatch['id'],
 				'name' => $arrMatch['name'],
+				'islocal' => $islocal 
 			];
 		}
 	}
@@ -456,7 +481,7 @@ function get_Valid_USB_Devices() {
 	#	return strcasecmp($a['id'], $b['id']);
 	#});
 ksort($arrValidUSBDevices) ;
-	$cacheUSBDevices = $arrValidUSBDevices;
+	#$cacheUSBDevices = $arrValidUSBDevices;
 
 	return $arrValidUSBDevices;
 }
@@ -490,10 +515,8 @@ function get_usbip_devs() {
 
 	if (file_exists("/sys/bus/usb/devices/".$busid."/usbip_status")) { 
 		$usbip_status=file_get_contents("/sys/bus/usb/devices/".$busid."/usbip_status") ;
-		if ($usbip_status == 1 ) $usbip_status_desc="Bound to driver" ;
-		if ($usbip_status == 2 ) $usbip_status_desc="Connected to Remote host" ;
-		if ($usbip_status == false ) $usbip_status_desc="" ;
-		$tj[$busid]["usbip_status"] = $usbip_status_desc ;
+
+		$tj[$busid]["usbip_status"] = $usbip_status ;
 }
 		/* Build array from udevadm */
 		/* udevadm info --query=property -x --path=/sys/bus/usb/devices/ + busid */
@@ -505,6 +528,8 @@ function get_usbip_devs() {
 			$udevisplit=explode("=",$udevi) ;
 			$tj[$busid][$udevisplit[0]] = $udevisplit[1] ;
 		}
+
+		$tj[$busid]["islocal"] = $detail["islocal"] ;
 		
 		$flash_check= $tj[$busid];
 		if ($flash_check["ID_SERIAL_SHORT"] == $flash_udev["ID_SERIAL_SHORT"]) {

@@ -1,8 +1,9 @@
 #!/usr/bin/php
 <?php
-/* Copyright 2015, Guilherme Jardim
- * Copyright 2016-2020, Dan Landon
+/* Copyright 2021, Simon Fairweather
  *
+ * based on original code from Guilherme Jardim and Dan Landon
+ * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License version 2,
  * as published by the Free Software Foundation.
@@ -175,15 +176,19 @@ function process_vm_usb_devices($vm, $action) {
 }
 }
 
-function usbip_syslog_processing($busid) {
+function usbip_syslog_processing($sl_busid) {
 
+   
 	exec("tail -n 20 /var/log/syslog", $syslog ) ;
-	var_dump($busid) ;
-#	$syslog=array_reverse($syslog) ;
+	
 
-#	$busid = $argv[3] ;
-
-#	foreach ($syslog as $syslog_entry) {
+	$syslog=array_reverse($syslog) ;
+	$config_file = $GLOBALS["paths"]["usb_rmt_connect"];
+	$config = @parse_ini_file($config_file, true);
+	$p2 = preg_match('/(.*) (?P<busid>\S+)/', $sl_busid, $arrMatchsl );
+	$busid= $arrMatchsl["busid"] ;
+	
+	foreach ($syslog as $syslog_entry) {
 
 	#	Feb 13 15:59:19 Tower usbipd: usbipd: info: connection from 192.168.1.29:46248
 	#	Feb 13 15:59:19 Tower usbipd: usbipd: info: received request: 0x8003(6)
@@ -195,13 +200,23 @@ function usbip_syslog_processing($busid) {
 
 
 
-	#var_dump($syslog_entry) ;
+	
+	$arrMatch =array() ;	
+	$p = preg_match('/(.*) connection from (?P<IP>\S+):(?P<port>\S+)/', $syslog_entry, $arrMatch );
+  
+	var_dump($arrMatch) ;
+		if ($p ) {
+;
+			
+			$config[$busid]["port"] = $arrMatch["port"] ;
+			$config[$busid]["IP"] = $arrMatch["IP"] ;
+			$config[$busid]["hostname"] = gethostbyaddr($arrMatch["IP"]) ;
+	}
+	}
 
-#		if (preg_match('/^(?P<date>\S+) info: connection from (?P<IP>\S+)(?P<Port>.*)$/', $syslog_entry, $arrMatch)) {
-#			var_dump($arrMatch) ;
-#			var_dump($syslog_entry) ;
-#	}
-#	}
+
+	save_ini_file($config_file, $config);
+
 }
 
 switch ($COMMAND) {
