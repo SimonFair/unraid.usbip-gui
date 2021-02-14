@@ -213,7 +213,7 @@ at -M -f /tmp/start_usbip now 2>/dev/null
 udevadm control --reload-rules
 
 # restart rsyslogd
-/etc/rc.d/rsyslog restart
+/etc/rc.d/rc.rsyslogd restart
 
 echo 
 echo "-----------------------------------------------------------"
@@ -254,7 +254,7 @@ killall usbipd
 udevadm control --reload-rules
 
 # restart rsyslogd
-/etc/rc.d/rsyslog restart
+/etc/rc.d/rc.rsyslogd restart
 
 
 # Remove all plugin files from emhttp.
