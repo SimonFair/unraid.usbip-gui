@@ -1,0 +1,61 @@
+Menu="Dashboard"
+Cond="parse_ini_file('/tmp/unraid.usbip-gui/config/unraid.usbip-gui.cfg')['DASH'] == 'enabled'"
+---
+
+<script>
+/* Cond="parse_ini_file('/boot/config/plugins/ipmi/ipmi.cfg')['DASH'] == 'enable'"*/
+
+$(function(){
+    $('#db-box2')
+    .append('<tbody id="tblUSBDash" class="sortable ui-sortable-handle"><tr><td></td><td colspan="5" class="next"><div class="section">USB<br><span id=ipmi-temp"></span><br><br></div><i class="fa fa-fw chevron fa-chevron-up" id="usb_view" onclick="toggleChevron(&quot;usb_view&quot;,0)"></i><a href="/Settings/USBIP_Settings/" title="Go to USB settings"><i class="fa fa-fw fa-cog chevron"></i></a></td><td></td></tr><tr class="usb_view" style="display: none;"><td></td><td>USB</td><td>Name</td><td>State</td><td></td></tr></tbody>');
+
+    USBArray(false);
+    setTimeout(USBRefresh, 20000);
+
+});
+
+/* sensor refresh */
+function USBRefresh() {
+  USBArray(true);
+   setTimeout(USBRefresh, 20000);
+};
+
+
+function USBArray(Refresh){
+
+    $.post('/plugins/unraid.usbip-gui/USBIP_Devices.php', {action:'usbdash'}, function(data) {
+        $.each(data.usb_devices, function (i, device) {
+           
+            var Color   = 'green';
+            var Units   = '';
+            var orbcolour   = 'green';
+            var allocated = device.allocated;
+            var status = device.status ;
+       
+            if(Refresh) {
+               // $('#'+i+' td.reading').html('<font color="'+ Color + '">'+ Reading + Units +'</font>');
+            } else {
+
+            $('#tblUSBDash')
+        
+            .append("<tr class='usb_view' style='display: none;' id='"+i+"'><td></td>"+
+            '<td  title="'+i+'"><i class="fa fa-usb icon"></i> '+i+'</td>'+ //USB physicalPort name
+            '<td><i class="fa fa-circle orb '+orbcolour+'-orb middle"></i>'+ device.ID_MODEL+ Units +'</td><td>'+ status +'</td>'+ //Status
+            ' <td>'+ allocated +'</td>'+ //Status
+            '</tr>');
+
+
+          //  .append("+
+          //  <thead sort='<?=++$N?>' class='sortable'><tr><td></td><td colspan='5' class='next'>_(USB)_<i class='fa fa-fw chevron mt0' id='usb_view' onclick='toggleChevron("usb_view",0)'></i><span class='info'></span></td><td></td></tr> +
+          //  <tr class='my_view'><td></td><td id='extra_info' colspan='5'></td><td></td></tr> +
+          //  <tr id='usb_view_on'><td></td><td>_(USB Port)_</td><td>_(Name)_</td><td>_(Status)_</td><td>_(SMART)_</td><td>_(Details)_</td><td></td></tr> +
+        //</thead> +
+          //  <tbody sort='<?=$N?>' class='extra_view sortable' id='extra_list'></tbody> "
+
+            }
+        });
+        toggleView('usb_view',true);
+    } ,'json');
+}  ;
+
+</script>

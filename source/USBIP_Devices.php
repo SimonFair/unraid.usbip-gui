@@ -24,7 +24,7 @@ if ($translations) {
 	$noscript = true;
 	require_once "$docroot/plugins/$plugin/include/Legacy.php";
 }
-global $libvirtd_running ;
+global $libvirtd_running, $usb_state ;
 require_once("plugins/{$plugin}/include/lib_usbip.php");
 require_once("webGui/include/Helpers.php");
 require_once "$docroot/plugins/dynamix.vm.manager/include/libvirt_helpers.php";
@@ -197,8 +197,8 @@ switch ($_POST['action']) {
 		echo "<div id='usbip_tab' class='show-disks'>";
 		#echo "<table class='disk_status wide disk_mounts'><thead><tr><td>"._('BusID')."</td><td>"._('Action')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('Reads')."</td><td>"._('Writes')."</td><td>"._('Settings')."</td><td>"._('FS')."</td><td>"._('Size')."</td><td>"._('Used')."</td><td>"._('Free')."</td><td>"._('Log')." idden</td></tr></thead>";
 		echo "<table class='usb_status wide local_usb'><thead><tr><td>"._('Physical BusID')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('Serial Numbers')."</td><td>"._('Set VM')."</td><td>"._('VM State')."</td><td>"._('VM Action')."</td><td>"._('Status')."</td>" ;
-		if ($usbip_enabled == "enabled") echo "<td>"._('USBIP Action')."</td><td>"._('USBIP Status') ;
-		echo "</td><td>"._('')."</td><td>"._('')."</td></tr></thead>";
+		if ($usbip_enabled == "enabled") echo "<td>"._('USBIP Action')."</td><td>"._('USBIP Status')."</td><td>"._('Host Name/IP')."</td>" ;
+		echo "<td>"._('')."</td></tr></thead>";
 
 		
 		echo "<tbody>";
@@ -296,13 +296,14 @@ switch ($_POST['action']) {
 				
 				if ($usbip_status == 2 ) {
 					$usbip_status_desc="Connected to Remote Host:" ;
-					if ($usb_connects["hostname"] = "" ) $usb_rmt_iphost=$usb_connects[$disk]["IP"] ; 	else $usb_rmt_iphost=$usb_connects[$disk]["hostname"] ;
+					if ($usb_connects[$disk]["hostname"] == "" ) $usb_rmt_iphost=$usb_connects[$disk]["IP"] ; 	else $usb_rmt_iphost=$usb_connects[$disk]["hostname"] ;
 				}
-				else $usb_rmt_ip = "" ;
-
+				else $usb_rmt_iphost = "" ;
+                $ip= $usb_connects[$disk]['IP'];
 				if ($usbip_status == false ) $usbip_status_desc="" ;
 				echo "<td>".$usbip_status_desc."</td>" ;	
-				if ($usbip_status == 2) echo "<td> ".$usb_rmt_iphost."</td>" ;
+				if ($usbip_status == 2) echo "<td><span  title='$ip' </span>".$usb_rmt_iphost."</td>" ;
+				
 
 		echo "</tr>" ;
 			}
@@ -602,13 +603,57 @@ switch ($_POST['action']) {
 			break ;	
 
 		case 'vm_disconnect':
+		#	global $usb_state ;
+		
 			$vm = urldecode($_POST['vm']);
 			$action = "detach" ;
 			$return = vm_map_action($vm, $action) ;
 			echo $return;
 			break ;	
 	
-		
-			
+			case 'usbdash':
+			$allocated = "" ;
+			$dash_array=array() ;
+			$usb_devices =	get_all_usb_info() ;
+			$usb_connects = load_usb_connects() ;
+			foreach ($usb_devices as $key => $device) {
+
+				$allocated = "" ;
+				$srlnbr = $device["ID_SERIAL"] ;
+				if (!$device["ishub"]) {
+					if (isset($device["usbip_status"] )) {
+						
+						if ($device["usbip_status"] == 1) $state="Bound(USBIP)" ;
+						if ($device["usbip_status"] == 2) {
+							$state="Connected(USBIP)" ;
+							
+							if ($usb_connects[$key]["hostname"] == "" ) $allocated=$usb_connects[$key]["IP"] ; 	else $allocated=$usb_connects[$key]["hostname"] ;
+						}
+						else $usb_rmt_iphost = "" ;
+					} else {
+				if ($usb_state[$srlnbr]["connected"] == '1')	{
+					$state="Connected(VM)" ;
+					$allocated = $usb_state[$srlnbr]["VM"] ;
+				} else {
+					$state="Available" ;
+					$allocated = $usb_state[$srlnbr]["VM"] ;
+					$allocated = "" ;
+				}
+			}
+		}
+
+		if ($device["isflash"]) {
+			$state = "UNRAID FLASH" ;
+			$allocated = "BOOT DEVICE" ;
+		}
+					$dash_array[$key] = array(
+					"ID_MODEL" => $device["ID_MODEL"],
+					"allocated" => $allocated,
+					"status" => $state,
+					"connect" => $usb_connects ,	
+				) ;
+			}
+			$return  = ['usb_devices' => $dash_array];
+        	echo json_encode($return);
 	}
-?>
+?>				

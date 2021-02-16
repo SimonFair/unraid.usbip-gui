@@ -1,4 +1,4 @@
-Menu="Utilities"
+Menu="OtherSettings"
 Title="USB Settings"
 Icon="fa-usb"
 ---
@@ -100,6 +100,19 @@ _(Enable USBIP)_:
 > If enabled, this will start usbip daemon.
 > Disable will stop if running and not start at boot.
 :end
+
+
+_(Enable USB on Dashboard)_:
+: <select name="DASH" size="1" >
+  <?=mk_option($cfg["Config"]["DASH"], "disabled", "_(Disabled)_");?>
+  <?=mk_option($cfg["Config"]["DASH"], "enabled", "_(Enabled)_");?>
+  </select>
+
+:usbip_settings_destructive_plug:
+> If enabled, this will start usbip daemon.
+> Disable will stop if running and not start at boot.
+:end
+
 
 &nbsp;
 : <input type="submit" name="#apply" value='_(Apply)_'><input type="button" value='_(Done)_' onclick="done()">
