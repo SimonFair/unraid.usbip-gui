@@ -623,10 +623,13 @@ switch ($_POST['action']) {
 				if (!$device["ishub"]) {
 					if (isset($device["usbip_status"] )) {
 						
-						if ($device["usbip_status"] == 1) $state="Bound(USBIP)" ;
+						if ($device["usbip_status"] == 1) {
+							$state="Bound(USBIP)" ;
+							$orb_colour ='yellow' ;
+						}
 						if ($device["usbip_status"] == 2) {
 							$state="Connected(USBIP)" ;
-							
+							$orb_colour ='green' ;
 							if ($usb_connects[$key]["hostname"] == "" ) $allocated=$usb_connects[$key]["IP"] ; 	else $allocated=$usb_connects[$key]["hostname"] ;
 						}
 						else $usb_rmt_iphost = "" ;
@@ -634,10 +637,12 @@ switch ($_POST['action']) {
 				if ($usb_state[$srlnbr]["connected"] == '1')	{
 					$state="Connected(VM)" ;
 					$allocated = $usb_state[$srlnbr]["VM"] ;
+					$orb_colour ='green' ;
 				} else {
 					$state="Available" ;
-					$allocated = $usb_state[$srlnbr]["VM"] ;
+					
 					$allocated = "" ;
+					$orb_colour ='blue' ;
 				}
 			}
 		}
@@ -645,12 +650,13 @@ switch ($_POST['action']) {
 		if ($device["isflash"]) {
 			$state = "UNRAID FLASH" ;
 			$allocated = "BOOT DEVICE" ;
+			$orb_colour ='grey' ;
 		}
 					$dash_array[$key] = array(
 					"ID_MODEL" => $device["ID_MODEL"],
 					"allocated" => $allocated,
 					"status" => $state,
-					"connect" => $usb_connects ,	
+					"orb_colour" => $orb_colour ,	
 				) ;
 			}
 			$return  = ['usb_devices' => $dash_array];

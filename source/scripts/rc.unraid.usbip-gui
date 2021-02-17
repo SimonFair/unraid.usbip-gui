@@ -155,7 +155,7 @@ function process_vm_usb_devices($vm, $action) {
 
 	
 		$vmname = $vm.";".$bus.";".$dev.";".$key ;
-	    #  var_dump($key) ;
+	      var_dump($vmname) ;
 	    if ($action == "stopped") {
 		  # Update usb.ini. Remove VM and Connected.
 
@@ -250,7 +250,7 @@ switch ($COMMAND) {
 		break;
 
 	case 'vm_action':
-		#usbip_log("Info: rc.unraid.usbip-gui  {$argv[1]} {$argv[2]} {$argv[3]} {$argv[4]} {$argv[5]}");
+		usbip_log("Info: rc.unraid.usbip-gui  {$argv[1]} {$argv[2]} {$argv[3]} {$argv[4]} {$argv[5]}");
 		process_vm_usb_devices($argv[2],$argv[3] ) ;
 		break;	
 
