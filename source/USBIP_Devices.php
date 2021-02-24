@@ -65,9 +65,11 @@ function netmasks($netmask, $rev = false)
 */
 
 function make_mount_button($device) {
-	global $paths, $Preclear, $loaded_usbip_host;
+	global $paths, $Preclear, $loaded_usbip_host,$usb_state;
 
 	$button = "<span><button device='{$device["BUSID"]}' class='mount' context='%s' role='%s' %s><i class='%s'></i>%s</button></span>";
+	$connected=$usb_state[$device["ID_SERIAL"]]["connected"] ;
+	
 
 		if ($device["isflash"] == true ) {
 		 $disabled = "disabled"	;
@@ -80,7 +82,7 @@ function make_mount_button($device) {
 		 } 
 			else 
 			{
-			 $disabled = "enabled"; 
+				if ($connected == '1' ) $disabled="disabled" ; else $disabled = "enabled"; 
 			}
 
 		if ($device["DRIVER"] == "usbip-host") {
@@ -129,13 +131,14 @@ function make_detach_button($port) {
 	return $button;
 }
 
-function make_vm_button($vm,$busid,$devid,$srlnbr,$vmstate,$isflash) {
+function make_vm_button($vm,$busid,$devid,$srlnbr,$vmstate,$isflash,$usbip_status,$map) {
 	global $paths, $Preclear , $loaded_vhci_hcd, $usbip_cmds_exist, $usb_state;
 
+	$connected_method=	$usb_state[$srlnbr]["connectmethod"] ;
+	$connected_map=	$usb_state[$srlnbr]["connectmap"] ;
+	if ($connected_map=="") $connected_map="Device" ;
 
-	
-
-	$button = "<span><button vm='".$vm.";".ltrim($busid).";".ltrim($devid).";".$srlnbr."' class='mount' context='%s' role='%s' %s><i class='%s'></i>%s</button></span>";
+	$button = "<span><button vm='".$vm.";".ltrim($busid).";".ltrim($devid).";".$srlnbr.";Manual;".$map."' class='mount' context='%s' role='%s' %s><i class='%s'></i>%s</button></span>";
 
 	if ($isflash == true ) {
 		$disabled = "disabled"	;
@@ -143,10 +146,13 @@ function make_vm_button($vm,$busid,$devid,$srlnbr,$vmstate,$isflash) {
 		return $button;
 	   } 
 
+	if ($usbip_status >0  ) return sprintf($button, $context, 'usbip', "disabled", 'fa fa-erase', _('Inuse USBIP'));
+
+
 	$buttontext= 'VM Attach' ;
 	if ($vm == "" || $vmstate == "shutoff" || $vmstate == "Disabled."  )
 		{
-			$disabled = "disabled <a href=\"#\" title='"._("vhci_hcd module not loaded")."'" ;
+			$disabled = "disabled  " ;
 		} else {
 			$disabled = "enabled"; 
 			
@@ -154,7 +160,8 @@ function make_vm_button($vm,$busid,$devid,$srlnbr,$vmstate,$isflash) {
 
 	$context = "disk";
 	if ($usb_state[$srlnbr]["connected"] == '1' ) {
-		$buttontext= 'VM Detach'; 
+		$buttontext= 'VM Detach';
+		if ($map!=$connected_map) 	$disabled = "disabled  " ; 
 		$button = sprintf($button, $context, 'vm_disconnect', $disabled, 'fa fa-import', _($buttontext));
 	} else {
 		
@@ -196,23 +203,55 @@ switch ($_POST['action']) {
 		
 		echo "<div id='usbip_tab' class='show-disks'>";
 		#echo "<table class='disk_status wide disk_mounts'><thead><tr><td>"._('BusID')."</td><td>"._('Action')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('Reads')."</td><td>"._('Writes')."</td><td>"._('Settings')."</td><td>"._('FS')."</td><td>"._('Size')."</td><td>"._('Used')."</td><td>"._('Free')."</td><td>"._('Log')." idden</td></tr></thead>";
-		echo "<table class='usb_status wide local_usb'><thead><tr><td>"._('Physical BusID')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('Serial Numbers')."</td><td>"._('Set VM')."</td><td>"._('VM State')."</td><td>"._('VM Action')."</td><td>"._('Status')."</td>" ;
+		echo "<table class='usb_status wide local_usb'><thead><tr><td>"._("Setting")."<td>"._('Physical BusID')."</td><td>"._('Subsystem/Driver')."</td><td>"._('Vendor:Product').".</td><td>"._('Serial Numbers')."</td><td>"._('Mapping')."</td><td>"._('VM')."</td><td>"._('VM State')."</td><td>"._('VM Action')."</td><td>"._('Status')."</td>" ;
 		if ($usbip_enabled == "enabled") echo "<td>"._('USBIP Action')."</td><td>"._('USBIP Status')."</td><td>"._('Host Name/IP')."</td>" ;
 		echo "<td>"._('')."</td></tr></thead>";
 
 		
-		echo "<tbody>";
+		echo "<tbody><tr>";
 	
 		if ( count($usbip) ) {
 			foreach ($usbip as $disk => $detail) {
 
-				$hdd_serial = "<a href=\"#\" title='"._("Device Log Information")."' onclick=\"openBox('/webGui/scripts/disk_log&amp;arg1={$disk}','Device Log Information',600,900,false);return false\"><i class='fa fa-usb icon'></i></a>";
-				$hdd_serial .="<span title='"._("Click to view/hide partitions and mount points")."' class='exec toggle-hdd' hdd='{$disk}'></span>";
+				$srlnbr=$detail["ID_SERIAL"] ;
+				$vm_name="" ;
+				$vm_name=$vm_maps[$srlnbr]["VM"] ;
+				$port_name="Port:".$disk ;
+				$port_map_vm=$vm_maps[$port_name]["VM"] ;
+				
+
+
+				if ($detail["isflash"]) {		
+					$bus_id =  "<i class='fa fa-usb'></i></a>";
+					$bus_id .= "<title='"._("Not Supported for Unraid Flash Drive")."'><a style='color:#CC0000;font-weight:bold;cursor:pointer;'><i class='fa fa-minus-circle orb red-orb'></i></a>" ;
+					
+				} else {
+				$vm_port="Port:".$disk;	
+				$vm_port_name=$vm_maps[$vm_port]["VM"] ;
+				$port_title = _("Edit Port Settings").".";
+				$port_title .= "   "._("Auto Connect").": ";
+				$port_title .= (is_autoconnect($vm_port) == 'Yes') ? "On" : "Off";
+				$port_title .= "   "._("Auto Connect on VM Start").": ";
+				$port_title .= (is_autoconnectstart($vm_port) == 'yes') ? "On" : "Off";
+				$port_title .=  "   ";
+				$dev_title = _("Edit Device Settings").".";
+				$dev_title .= "   "._("Auto Connect").": ";
+				$dev_title .= (is_autoconnect($srlnbr) == 'Yes') ? "On" : "Off";
+				$dev_title .= "   "._("Auto Connect on VM Start").": ";
+				$dev_title .= (is_autoconnectstart($srlnbr) == 'yes') ? "On" : "Off";
+				$dev_title .=  "   ";
+
+				$bus_id =  "<a title='$port_title'  href='/USB/USBEditSettings?s=".urlencode($vm_port)."&v=".urlencode($vm_port_name)."&f=".urlencode($detail["isflash"])."'><i class='fa fa-usb'></i></a>&nbsp;"; 	
+				$bus_id .= "<a title='$dev_title' href='/USB/USBEditSettings?s=".urlencode($srlnbr)."&v=".urlencode($vm_name)."&f=".urlencode($detail["isflash"])."'><i class='fa fa-desktop'></i></a>&nbsp;";
+			}
+				$bus_id.= "<a href=\"#\" title='"._("Device Log Information")."' onclick=\"openBox('/webGui/scripts/disk_log&amp;arg1={$disk}','Device Log Information',600,900,false);return false\"><i class='fa fa-file icon'></i></a>";
+				$bus_id .="<span title='"._("Click to view/hide partitions and mount points")."' class='exec toggle-hdd' hdd='{$disk}'></span>";
+				
 
 				$detail["BUSID"] = $disk ;
 				$mbutton = make_mount_button($detail);		
 				/* Device serial number */
-			    echo "<td>{$hdd_serial}{$disk}</td>";
+			    echo "<td>{$bus_id}</td><td>{$disk}</td>";
 
 				/* Device Driver */
 				echo "<td>".$detail["SUBSYSTEM"]."/".$detail["DRIVER"]."</td>";
@@ -224,70 +263,95 @@ switch ($_POST['action']) {
 				}
 				echo "<td>".$vendor.":".$detail["ID_MODEL"]."</td>" ;
 			   
-				$srlnbr=$detail["ID_SERIAL"] ;
+			
 				
 				echo "<td>  ".$srlnbr."</td>"  ;
 
-				$vm_name="" ;
-				$vm_name=$vm_maps[$srlnbr]["VM"] ;
-             
+				             
 				
-				$title = _("Edit Device Settings").".";
-					
-				$title .= "   "._("Auto Connect").": ";
-				$title .= (is_autoconnect($srlnbr) == 'Yes') ? "On" : "Off";
-				
-				$title .= "   "._("Auto Connect on VM Start").": ";
-				$title .= (is_autoconnectstart($srlnbr) == 'yes') ? "On" : "Off";
-			
-					$title .=  "   ";
-				
-			  
-			
-				if (!$detail["isflash"]) {
-				echo "<td><a title='$title' href='/USB/USBEditSettings?s=".urlencode($srlnbr)."&v=".urlencode($vm_name)."&f=".urlencode($detail["isflash"])."'><i class='fa fa-desktop'></i></a>";
-				} else { echo "<td title='"._("Not Supported for Unraid Flash Drive")."'><a style='color:#CC0000;font-weight:bold;cursor:pointer;'><i class='fa fa-minus-circle orb red-orb'></i></a>" ; }
+	
+	
+				#	if (!$detail["isflash"]) {
+			#	echo "<td>".$type."</td><td><a title='$dev_title' href='/USB/USBEditSettings?s=".urlencode($srlnbr)."&v=".urlencode($vm_name)."&f=".urlencode($detail["isflash"])."'><i class='fa fa-desktop'></i></a>";
+			#	} else { echo "<td title='"._("Not Supported for Unraid Flash Drive")."'><a style='color:#CC0000;font-weight:bold;cursor:pointer;'><i class='fa fa-minus-circle orb red-orb'></i></a>" ; }
 
 				
 
 				# Create VM list.
 
 				$connected="" ;
-				if ($vm_name != "") {
+				if ($vm_name != "" ) {
 			#	$res = $lv->get_domain_by_name($vm_name);
 			#	$dom = $lv->domain_get_info($res);
 			#	$state = $lv->domain_state_translate($dom['state']);
 
 			#put check for  VM subsystem running.
-				if ($libvirtd_running) $state=get_vm_state($vm_name) ; else $state = "Disabled." ;
+				if ($libvirtd_running && $vm_name != "") $state=get_vm_state($vm_name) ; else $state = "Disabled." ;
+				#if ($libvirtd_running && $port_map_vm != "" ) $port_vmstate=get_vm_state($port_map_vm) ; else $port_vmstate = "Disabled." ;
 
-				if (isset($usb_state[$srlnbr]["connected"])) {
-				  $connected = $usb_state[$srlnbr]["connected"];
-				  if ($connected == true) {$connected ="Connected" ;} else {$connected="Disconnected";}
-
-				} else $connected = "Disconnected" ;
-
-				if ($usb_state[$srlnbr]["virsherror"] == true)   {
-					$error=$usb_state[$srlnbr]["virsh"] ;
-					$connected = "<a class='info'><i class='fa fa-warning fa-fw orange-text'></i><span>"._(ltrim($error, "\n"))."</span></a>Virsh Error";
-				  }
-
-
+				
 				} else { $state="No VM Defined" ;} 
 
-		
+				if ($port_map_vm != "" ) {
+					if ($libvirtd_running && $port_map_vm != "" ) $port_vmstate=get_vm_state($port_map_vm) ; else $port_vmstate = "Disabled." ;
+				} else { $port_vmstate="No VM Defined" ;} 
+
+				if (isset($usb_state[$srlnbr]["connected"])) {
+					$connected = $usb_state[$srlnbr]["connected"];
+					$connected_map = $usb_state[$srlnbr]["connectmap"] ;
+					if ($connected_map =="") $connected_map="Device" ;
+					if ($connected == true) {$connected ="Connected(".$connected_map.")" ;} else {$connected="Disconnected";}
+  
+				  } else $connected = "Disconnected" ;
+  
+				  if ($usb_state[$srlnbr]["virsherror"] == true)   {
+					  $error=$usb_state[$srlnbr]["virsh"] ;
+					  $connected = "<a class='info'><i class='fa fa-warning fa-fw orange-text'></i><span>"._(ltrim($error, "\n"))."</span></a>Virsh Error";
+					}
 
 				if ($detail["isflash"]) {
 					$vm_name ="Not Allowed" ;
+					$port_map_vm ="Not Allowed" ;
 					$state="Not Allowed" ;
 					$connected="Not Allowed" ;
+					$type="N/A" ;
 				}	
-				echo " ".$vm_name."</td>";
+
+				#if ($connected_method == "Device")
+				#    $port_vmstate = "Disabled." ;
+			#		else $state = "Disabled." ;
+#if ( !$detail["isflash"]) {
+				if ($vm_name != "" ) {
+					$type="Device Mapping:" ;
+					echo "<td>".$type."</td>" ;
+				echo "<td>".$vm_name."</td>";
+				#echo "<td>".$port_map_vm."</td>";
 				#echo "</select></td> " ;
-				$vmbutton = make_vm_button($vm_name, $detail["BUSNUM"],$detail["DEVNUM"],$srlnbr,$state, $detail["isflash"] );
-				
+				$vmbutton = make_vm_button($vm_name, $detail["BUSNUM"],$detail["DEVNUM"],$srlnbr,$state, $detail["isflash"] ,$detail["usbip_status"],"Device");
 				echo "<td>".$state."</td>" ;
 				echo "<td class='mount'>{$vmbutton}</td>";
+
+				} else {
+					if ($port_map_vm != "" ) {
+						$type="Port Mapping:" ;
+						echo "<td>".$type."</td>" ;
+						echo "<td>".$port_map_vm."</td>";
+						echo "<td>".$port_vmstate."</td>" ;
+						$vmbutton = make_vm_button($port_map_vm, $detail["BUSNUM"],$detail["DEVNUM"],$srlnbr,$port_vmstate, $detail["isflash"] ,$detail["usbip_status"],"Port");
+						echo "<td class='mount'>{$vmbutton}</td>";
+						}
+	
+				}
+
+				if ($vm_name == ""  && $port_map_vm == "" ) {
+					$type="No Mappings" ;
+					$vmbutton = make_vm_button($port_map_vm, $detail["BUSNUM"],$detail["DEVNUM"],$srlnbr,$port_vmstate, $detail["isflash"] ,$detail["usbip_status"],"Port");
+					echo "<td>".$type."</td><td></td><td></td><td class='mount'>{$vmbutton}" ;
+				}
+				
+#			}
+
+
 				echo "<td>".$connected."</td>" ;
 				/* USBIP Bind button */
 				if ($usbip_enabled == "enabled") echo "<td class='mount'>{$mbutton}</td>";
@@ -303,9 +367,17 @@ switch ($_POST['action']) {
 				if ($usbip_status == false ) $usbip_status_desc="" ;
 				echo "<td>".$usbip_status_desc."</td>" ;	
 				if ($usbip_status == 2) echo "<td><span  title='$ip' </span>".$usb_rmt_iphost."</td>" ;
-				
+				echo "</tr>" ;
 
-		echo "</tr>" ;
+				if ($port_map_vm !="" && $vm_name != "" && 	!$detail["isflash"]) {
+				$type="Port Mapping:" ;
+				echo "<tr><td></td><td></td><td></td><td></td><td></td><td>".$type."</td>" ;
+				echo "<td>".$port_map_vm."</td>";
+				echo "<td>".$port_vmstate."</td>" ;
+				$vmbutton = make_vm_button($port_map_vm, $detail["BUSNUM"],$detail["DEVNUM"],$srlnbr,$port_vmstate, $detail["isflash"] ,$detail["usbip_status"],"Port");
+				echo "<td class='mount'>{$vmbutton}</td></tr>";
+			    }
+		
 			}
 		} else {
 			echo "<tr><td colspan='12' style='text-align:center;'>"._('No Bindable Devices available').".</td></tr>";
@@ -337,7 +409,7 @@ switch ($_POST['action']) {
 
 
 				$cmd_return=parse_usbip_remote($key) ;
-				#var_dump($cmd_return) ;
+		
 				$busids = $cmd_return[$key] ;
 				if (isset($busids)) {
 				foreach ($busids as $busidkey => $busiddetail)
@@ -439,7 +511,6 @@ switch ($_POST['action']) {
 		echo "</tbody></table></div>";
 	}
 
-		#var_dump($usb_state) ;
 		
 		 usbip_log("Total render time: ".($time + microtime(true))."s", "DEBUG");
 		 
@@ -451,21 +522,24 @@ switch ($_POST['action']) {
 		 $disks_serials = array();
 		 #foreach ($disks as $disk) $disks_serials[] = $disk['partitions'][0]['serial'];
 		 $ct = "";
-		 #var_dump($config) ;
+		
 		 foreach ($config as $serial => $value) {
-			#var_dump($serial) ;
+			
 			if($serial == "Config") continue;
 			 if (! preg_grep("#{$serial}#", $disks_serials)){
-				 #$mountpoint	= basename(get_config($serial, "mountpoint.1"));
+				if (substr($serial,0,5) == "Port:") $icon="fa-usb" ; else $icon="fa-desktop" ;
+				if (!isset($value["autoconnect"]))  $value["autoconnect"] ="no" ;
+				if (!isset($value["autoconnectstart"])) $value["autoconnectstart"] ="no" ;
+ 				 #$mountpoint	= basename(get_config($serial, "mountpoint.1"));
 				 $ct .= "<tr><td><i class='fa fa-usb'></i>"._("")."</td><td>$serial"." </td>";
-				 $ct .= "<td>".$value["VM"]."</td><td></td><td></td><td></td><td></td><td></td>";
-				 $ct .= "<td><a title='"._("Edit Historical USB Device Settings")."' href='/USB/USBEditSettings?s=".urlencode($serial)."&v=".urlencode($value["VM"])."&t=TRUE'><i class='fa fa-desktop'></i></a></td>";
+				 $ct .= "<td>".$value["VM"]."</td><td>".ucfirst($value["autoconnect"])."</td><td>".ucfirst($value["autoconnectstart"])."</td><td></td><td></td><td></td>";
+				 $ct .= "<td><a title='"._("Edit Historical USB Device Settings")."' href='/USB/USBEditSettings?s=".urlencode($serial)."&v=".urlencode($value["VM"])."&t=TRUE'><i class='fa ".$icon."'></i></a></td>";
 				 $ct .= "<td title='"._("Remove USB Device configuration")."'><a style='color:#CC0000;font-weight:bold;cursor:pointer;' onclick='remove_vmmapping_config(\"{$serial}\")'><i class='fa fa-remove hdd'></a></td></tr>";
 			 }
 		 }
 		 if (strlen($ct)) {
-			 echo "<div class='show-disks'><div class='show-historical' id='hist_tab'><div id='title'><span class='left'><img src='/plugins/{$plugin}/icons/historical.png' class='icon'>"._('Historical Devices')."</span></div>";
-			 echo "<table class='disk_status wide usb_absent'><thead><tr><td>"._('Device')."</td><td>"._('Serial Number')."</td><td>"._('VM')."</td><td></td><td></td><td></td><td></td><td></td><td>"._('Settings')."</td><td>"._('Remove')."</td></tr></thead><tbody>{$ct}</tbody></table></div>";
+			 echo "<div class='show-disks'><div class='show-historical' id='hist_tab'><div id='title'><span class='left'><img src='/plugins/{$plugin}/icons/historical.png' class='icon'>"._('Port and Historical Device Mappings')."</span></div>";
+			 echo "<table class='disk_status wide usb_absent'><thead><tr><td>"._('Device')."</td><td>"._('Serial Number')."</td><td>"._('VM')."</td><td>Auto Connect</td><td>Auto Connect Start</td><td></td><td></td><td></td><td>"._('Settings')."</td><td>"._('Remove')."</td></tr></thead><tbody>{$ct}</tbody></table></div>";
 		 }
 		 unassigned_log("Total get_content render time: ".($time + microtime(true))."s", "DEBUG");
 
@@ -603,15 +677,13 @@ switch ($_POST['action']) {
 			break ;	
 
 		case 'vm_disconnect':
-		#	global $usb_state ;
-		
 			$vm = urldecode($_POST['vm']);
 			$action = "detach" ;
 			$return = vm_map_action($vm, $action) ;
 			echo $return;
 			break ;	
 	
-			case 'usbdash':
+		case 'usbdash':
 			$allocated = "" ;
 			$dash_array=array() ;
 			$usb_devices =	get_all_usb_info() ;
@@ -620,7 +692,7 @@ switch ($_POST['action']) {
 
 				$allocated = "" ;
 				$srlnbr = $device["ID_SERIAL"] ;
-				if (!$device["ishub"]) {
+
 					if (isset($device["usbip_status"] )) {
 						
 						if ($device["usbip_status"] == 1) {
@@ -634,17 +706,17 @@ switch ($_POST['action']) {
 						}
 						else $usb_rmt_iphost = "" ;
 					} else {
-				if ($usb_state[$srlnbr]["connected"] == '1')	{
-					$state="Connected(VM)" ;
-					$allocated = $usb_state[$srlnbr]["VM"] ;
-					$orb_colour ='green' ;
-				} else {
-					$state="Available" ;
+				        if ($usb_state[$srlnbr]["connected"] == '1')	{
+					    $state="Connected(VM)" ;
+					    $allocated = $usb_state[$srlnbr]["VM"] ;
+					    $orb_colour ='green' ;
+				        } else {
+					    $state="Available" ;
 					
-					$allocated = "" ;
-					$orb_colour ='blue' ;
-				}
-			}
+				    	$allocated = "" ;
+					    $orb_colour ='blue' ;
+				        }
+
 		}
 
 		if ($device["isflash"]) {
@@ -662,4 +734,4 @@ switch ($_POST['action']) {
 			$return  = ['usb_devices' => $dash_array];
         	echo json_encode($return);
 	}
-?>				
+?>

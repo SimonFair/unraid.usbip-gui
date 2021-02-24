@@ -3,13 +3,13 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unraid.usbip-gui">
 <!ENTITY author    "SimonFair">
-<!ENTITY version   "2021.02.16">
+<!ENTITY version   "2021.02.24">
 <!ENTITY launch    "main">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/SimonFair/unraid.usbip-gui/master">
 <!ENTITY pluginURL "&gitURL;/usbip-gui-dev.plg">
 <!ENTITY supportURL	"https://forums.unraid.net/">
 <!ENTITY packages	"/boot/config/plugins/&name;/packages">
-<!ENTITY md5		"cb033e1c3c83466f65bb4263499dff45">
+<!ENTITY md5		"5f0a09cb23a75c00bc4fce5757370d8b">
 ]>
 
 <PLUGIN name="&name;"

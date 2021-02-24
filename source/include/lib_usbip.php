@@ -650,7 +650,11 @@ function vm_map_action($vm, $action)
 			$bus = $explode[1] ;
 			$dev = $explode[2] ;
 			$srlnbr= $explode[3] ;
+			if (isset($explode[4])) $method=$explode[4] ; else $method="" ;
+			if (isset($explode[5])) $map=$explode[5] ; else $map="" ;
+			
 			$usbstr = '';
+
 			
 	#		if ($action != "none") {
 			$return=virsh_device_by_bus($action,$vmname, $bus, $dev) ;
@@ -673,6 +677,8 @@ function vm_map_action($vm, $action)
 	#		}	else {  USBMgrCreateStatusEntry($srlnbr, $bus, $dev) ;}
 			
 			save_usbstate($srlnbr, "virsh" , $return) ;
+			save_usbstate($srlnbr, "connectmethod" , $method) ;
+			save_usbstate($srlnbr, "connectmap" , $map) ;
 
 	#		save_usbstate($srlnbr, "bus" , $bus) ;
 	#		save_usbstate($srlnbr, "dev" , $dev) ;

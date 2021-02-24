@@ -85,7 +85,8 @@ function usbip_check_config() {
 function usb_device_add_action($serial)
 {
 
-		$vm = get_vm_config($serial, "VM");
+	    $vm_maps = load_vm_mappings() ;
+		$vm = $vm_maps[$serial]["VM"];
 
 		$state = get_vm_state($vm) ;
 
@@ -94,21 +95,73 @@ function usb_device_add_action($serial)
 		USBMgrCreateStatusEntry($_ENV['ID_SERIAL'], $_ENV['BUSNUM'], $_ENV['DEVNUM']) ;
 
 		if (is_autoconnect($serial) == false ) {
-		#	vm_map_action($vm, "none") ;
+		
 			return ;
 		}
 
 		if ($state != "shutoff") {
-		usbip_log("Info: rc.unraid.usbip-gui Autoconnect vm state:{$state} {$_ENV['ID_SERIAL']} {$state} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}");
-		vm_map_action($vm, "attach") ;
+			usbip_log("Info: rc.unraid.usbip-gui Autoconnect vm state:{$state} {$_ENV['ID_SERIAL']} {$state} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}");
+			vm_map_action($vm, "attach") ;
 		}
 		else { 
-		#	vm_map_action($vm, "none") ;
 			usbip_log("Info: rc.unraid.usbip-gui Autoconnect ignored VM not running state:{$state} {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}"); 
 		}	
-
-
+     
 }
+
+function usb_device_add_actionv2($serial)
+{
+
+	    $vm_maps = load_vm_mappings() ;
+		$vm = $vm_maps[$serial]["VM"];
+
+		$state = get_vm_state($vm) ;
+
+		$vm .= ";".$_ENV['BUSNUM'].";".$_ENV['DEVNUM'].";".$_ENV['ID_SERIAL'].";Auto;Device;" ;	
+
+		USBMgrCreateStatusEntry($_ENV['ID_SERIAL'], $_ENV['BUSNUM'], $_ENV['DEVNUM']) ;
+
+		if ($vm_maps[$serial]["autoconnect"] == "yes" ) {
+    		if ($state != "shutoff") {
+	    		usbip_log("Info: rc.unraid.usbip-gui Autoconnect vm state:{$state} {$_ENV['ID_SERIAL']} {$state} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}");
+		    	vm_map_action($vm, "attach") ;
+				return ;
+		    }
+		    else { 
+				usbip_log("Info: rc.unraid.usbip-gui Autoconnect ignored VM not running state:{$state} {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}"); 
+			}	
+		}
+
+        #udevadm info -a   --name=/dev/bus/usb/003/002 | grep KERNEL==
+
+		$udevcmd = "udevadm info -a   --name=/dev/bus/usb/".$_ENV['BUSNUM']."/".$_ENV['DEVNUM']." | grep KERNEL==" ;
+		exec( $udevcmd , $udev);
+		$physical_busid = trim(substr($udev[0], 13) , '"') ;
+        $port_map="Port:".$physical_busid ;
+		
+		if (isset($vm_maps[$port_map])) {
+
+
+			var_dump($port_map) ; var_dump($vm_maps[$port_map]) ;
+
+			$vm = $vm_maps[$port_map]["VM"];
+		
+			if ($vm_maps[$port_map]["autoconnect"] == "yes" ) {
+				$state = get_vm_state($vm) ;
+				$vm .=  ";".$_ENV['BUSNUM'].";".$_ENV['DEVNUM'].";".$_ENV['ID_SERIAL'].";Auto;Port"; ;
+				if ($state != "shutoff") {
+					usbip_log("Info: rc.unraid.usbip-gui Autoconnect vm state:{$state} {$_ENV['ID_SERIAL']} {$state} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']} port {$physical_busid}");
+					vm_map_action($vm, "attach") ;
+					return ;
+				}
+				else { 
+					usbip_log("Info: rc.unraid.usbip-gui Autoconnect ignored VM not running state:{$state} {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']} port {$physical_busid}"); 
+				}	
+			}
+		}
+		usbip_log("Info: rc.unraid.usbip-gui Autoconnect No Mapping found {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']} port {$physical_busid}"); 
+}
+
 
 function usb_device_remove_action($bus, $dev)
 {
@@ -145,6 +198,9 @@ function process_vm_usb_devices($vm, $action) {
 
 	    if (isset($usb_state[$key])	)
         {
+		 if ($usb_state[$key]["connected"]==1) {
+			usbip_log("Info: rc.unraid.usbip-gui Autoconnect Start {$key} vm: {$vm} Device in Use action ignored. ");
+		    continue ;	}
 	     $bus = $usb_state[$key]["bus"];
 	     $dev = $usb_state[$key]["dev"];
 
@@ -154,8 +210,8 @@ function process_vm_usb_devices($vm, $action) {
 	     #var_dump($vm) ;
 
 	
-		$vmname = $vm.";".$bus.";".$dev.";".$key ;
-	      var_dump($vmname) ;
+		$vmname = $vm.";".$bus.";".$dev.";".$key.";Auto;Device;" ;	 ;
+	    
 	    if ($action == "stopped") {
 		  # Update usb.ini. Remove VM and Connected.
 
@@ -241,7 +297,7 @@ switch ($COMMAND) {
 
 	case 'usb_add':
 		usbip_log("Info: rc.unraid.usbip-gui {$argv[1]} {$_ENV['ID_SERIAL']} {$_ENV['DEVNAME']} {$_ENV['BUSNUM']} {$_ENV['DEVNUM']}");
-		usb_device_add_action($_ENV['ID_SERIAL']) ;
+		usb_device_add_actionv2($_ENV['ID_SERIAL']) ;
 		break;
 
 	case 'usb_remove':
