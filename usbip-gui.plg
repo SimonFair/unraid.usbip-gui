@@ -238,7 +238,7 @@ depmod -a > /dev/null
 check_usbip_repo() {
 #Check if usbip is already downloaded
 
-if [ ! -z "$(modinfo usbip_host)" ]; then
+if [ ! -z "$(modinfo usbip_host 2>/dev/null)" ]; then
     echo "--------------------------usbip already installed...!--------------------------"
 else
     check
