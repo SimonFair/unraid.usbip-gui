@@ -198,9 +198,9 @@ function process_vm_usb_devices($vm, $action) {
 
 	    if (isset($usb_state[$key])	)
         {
-		 if ($usb_state[$key]["connected"]==1) {
-			usbip_log("Info: rc.unraid.usbip-gui Autoconnect Start {$key} vm: {$vm} Device in Use action ignored. ");
-		    continue ;	}
+#		 if ($usb_state[$key]["connected"]==1) {
+#			usbip_log("Info: rc.unraid.usbip-gui Autoconnect Start {$key} vm: {$vm} Device in Use action ignored. ");
+#		    continue ;	}
 	     $bus = $usb_state[$key]["bus"];
 	     $dev = $usb_state[$key]["dev"];
 
