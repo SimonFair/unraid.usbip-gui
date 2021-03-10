@@ -1,15 +1,15 @@
-<?xml version='1.0' standalone='yes'?>
+?xml version='1.0' standalone='yes'?>
 
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unraid.usbip-gui">
 <!ENTITY author    "SimonFair">
-<!ENTITY version   "2021.03.09">
+<!ENTITY version   "2021.03.10">
 <!ENTITY launch    "usb">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/SimonFair/unraid.usbip-gui/master">
 <!ENTITY pluginURL "&gitURL;/usbip-gui.plg">
 <!ENTITY supportURL	"https://forums.unraid.net/topic/100511-plugin-usbip-commands/">
 <!ENTITY packages	"/boot/config/plugins/&name;/packages">
-<!ENTITY md5		"7d29ef33d811eea2a14ae80cc12acb89">
+<!ENTITY md5		"63386fc798690fc89c7bf02bd9a00c6e">
 ]>
 
 <PLUGIN name="&name;"
@@ -24,6 +24,10 @@
 <CHANGES>
 ##&name;
 ###&version;
+
+- Add VM disconnect option to be used in pre sleep commands to remove USB mappings from VM before sleep.
+
+09.03.2021
 
 - Chg Fix issue introduce as part of port mapping for checking status.
 
@@ -77,7 +81,7 @@ Change to include USBIP package install in the settings page.
 Development yet to be completed.
 
 Autoconnect function, check VM status before connecting. 
-Autodisconnect function. Will provide log entry but no action taken at present.
+utodisconnect function. Will provide log entry but no action taken at present.
 Add checks before historical info can be removed.
 Rename Plugin to USB Manager
 VM Start/Stop process.

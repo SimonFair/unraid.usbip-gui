@@ -227,6 +227,13 @@ function process_vm_usb_devices($vm, $action) {
 			   usbip_log("Info: rc.unraid.usbip-gui Autoconnect Start {$key} vm: {$vm} ");
 		    }
 	     }
+
+		 if ($action == "disconnect") {
+		#	if ($vm_map["autoconnectstart"] == "yes") {
+				vm_map_action($vmname, "detach") ;
+				usbip_log("Info: rc.unraid.usbip-gui Disconnect {$key} vm: {$vm} ");
+		#	 }
+		  } 
 	    }
 	}
 }
