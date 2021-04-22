@@ -3,13 +3,13 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unraid.usbip-gui">
 <!ENTITY author    "SimonFair">
-<!ENTITY version   "2021.03.10">
+<!ENTITY version   "2021.03.22">
 <!ENTITY launch    "usb">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/SimonFair/unraid.usbip-gui/master">
 <!ENTITY pluginURL "&gitURL;/usbip-gui.plg">
 <!ENTITY supportURL	"https://forums.unraid.net/topic/100511-plugin-usbip-commands/">
 <!ENTITY packages	"/boot/config/plugins/&name;/packages">
-<!ENTITY md5		"63386fc798690fc89c7bf02bd9a00c6e">
+<!ENTITY md5		"8c499e61277b2047eebebe1f659891fb">
 ]>
 
 <PLUGIN name="&name;"
@@ -24,6 +24,13 @@
 <CHANGES>
 ##&name;
 ###&version;
+
+- Add Roothub and Hubs to view.
+- Add Switch to show empty ports.
+
+No process added at this time for additional devices.
+
+10.03.2021
 
 - Add VM disconnect option to be used in pre sleep commands to remove USB mappings from VM before sleep.
 
