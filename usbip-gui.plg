@@ -25,6 +25,10 @@
 ##&name;
 ###&version;
 
+- Add Remove USB Device from VM when disconnected.
+
+22.04.2021
+
 - Add Roothub and Hubs to view.
 - Add Switch to show empty ports.
 
